@@ -173,6 +173,8 @@ data_processed <- data_processed_before_exclusions |>
                                          is.na(like) == "" ~ "exclude",
                                          is.na(positive) == "" ~ "exclude",
                                          is.na(prefer) == "" ~ "exclude",
+                                         subject == "504546409" ~ "exclude",
+                                         subject == "246532124" ~ "exclude",
                                          TRUE ~ "include",
                                            ))
   
