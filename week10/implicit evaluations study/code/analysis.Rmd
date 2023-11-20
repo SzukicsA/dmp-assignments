@@ -271,6 +271,15 @@ piris <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_eva
 
 ggMarginal(piris, type = "histogram",groupColour = TRUE, groupFill = TRUE)
 
+
+
+piris2 <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, colour = gender)) +
+  geom_point() +
+  xlab("AMP score") +
+  ylab("Mean self-reported evaluation") +
+  theme_minimal()
+
+ggMarginal(piris2, groupColour = TRUE, groupFill = TRUE)
 ```
 
 #### Labelled points
@@ -366,13 +375,43 @@ ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender))
 
 #violin
 
-ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, y = gender, fill = gender)) +
-  geom_violin() +
-  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(xlim = c(0, 7)) +
-  labs(title = "Violin Plot of Mean Evaluation") +
-  xlab("AMP score") +
-  ylab("Gender") +
+ggplot(data_processed_after_exclusions, aes(x    = gender,
+                                            y    = mean_evaluation,
+                                            fill = gender)) +
+  geom_violin(draw_quantiles = .5,
+              trim           = TRUE,
+              alpha          = 0.5,) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+  labs(title                 = "Violin Plot of Mean Evaluation") +
+  xlab("Gender") +
+  ylab("Mean Evaluation") +
+  theme_minimal()
+
+#raincloud
+
+library(PupillometryR)
+
+ggplot(data_processed_after_exclusions, aes(x    = gender,
+                                            y    = mean_evaluation,
+                                            fill = gender)) +
+  geom_flat_violin(position = position_nudge(x   = 0.2,
+                                             y   = 0)) +
+  geom_point(position                            = position_jitter(width = 0.15),
+             size                                = 1,
+             alpha                               = 0.8) +
+  geom_boxplot(width                             = 0.1,
+               outlier.shape                     = NA,
+               position                          = position_nudge(x = -0.2,
+                                                                  y = 0)) +
+  theme_minimal()
+
+# Horizontal Raincloud Plot with Adjusted Violin Scale
+ggplot(data_processed_after_exclusions, aes(y = gender, x = mean_evaluation, fill = gender)) +
+  geom_violin(scale = "width", trim = FALSE) +  # Adjust scale here
+  geom_point(position = position_jitter(height = 0.15), size = 1, alpha = 0.8) +
+  geom_boxplot(width = 0.1, outlier.shape = NA, position = position_nudge(y = -0.2, x = 0)) +
+  coord_flip() +  # Flips the coordinates for horizontal orientation
   theme_minimal()
 
 ```
