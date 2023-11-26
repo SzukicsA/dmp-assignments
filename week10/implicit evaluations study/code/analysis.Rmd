@@ -32,6 +32,10 @@ library(knitr)
 library(kableExtra)
 library(janitor)
 library(scales)
+library(PupillometryR)
+library(palmerpenguins)
+library(ggdist)
+devtools::install_github("psyteachr/introdataviz")
 
 ```
 
@@ -347,9 +351,12 @@ ggp + geom_magnify(from = from, to = to)
 ```{r}
 
 
+# Fit the linear model
+model_mean_amp <- lm(mean_evaluation ~ AMP_score, data = data_processed_after_exclusions)
+summary(model_mean_amp)
 
 ```
-
+I performed a linear regression analysis to see whether there was a correlation between mean evaluation and AMP score. The results show that there isn't any relation between the two variables (p > 0.05). Furthermore, the model does not seem to explain very little variance for mean evaluation.
 
 ## Self-reported evalautions differ between men and women
 
@@ -363,55 +370,53 @@ ggp + geom_magnify(from = from, to = to)
 
 ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
   geom_histogram(alpha    = 0.5, 
-                  position = "dodge")+#binwidth = 5,
+                 position = "dodge",
+                 binwidth = .2)+
                  # alpha    = 0.5, 
                  # position = "dodge") +
   scale_x_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(xlim = c(1, 7)) +
-  labs(title = "Violin Plot of Mean Evaluation") +
-  xlab("AMP score") +
-  ylab("Gender") +
+  coord_cartesian(xlim = c(0, 7)) +
+  theme_minimal()
+
+ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
+  geom_histogram(alpha    = 0.5, 
+                  position = "dodge",
+                 )+#binwidth = 5,
+                 # alpha    = 0.5, 
+                 # position = "dodge") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(0, 7)) +
+  facet_grid(~gender)+
   theme_minimal()
 
 #violin
 
-ggplot(data_processed_after_exclusions, aes(x    = gender,
-                                            y    = mean_evaluation,
-                                            fill = gender)) +
-  geom_violin(draw_quantiles = .5,
+ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
+  geom_flat_violin(draw_quantiles = .5, 
               trim           = TRUE,
               alpha          = 0.5,) +
   scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
   coord_cartesian(ylim       = c(0, 7)) +
-  labs(title                 = "Violin Plot of Mean Evaluation") +
-  xlab("Gender") +
-  ylab("Mean Evaluation") +
   theme_minimal()
 
 #raincloud
 
-library(PupillometryR)
+rain_height <- .1
 
-ggplot(data_processed_after_exclusions, aes(x    = gender,
-                                            y    = mean_evaluation,
-                                            fill = gender)) +
-  geom_flat_violin(position = position_nudge(x   = 0.2,
-                                             y   = 0)) +
-  geom_point(position                            = position_jitter(width = 0.15),
-             size                                = 1,
-             alpha                               = 0.8) +
-  geom_boxplot(width                             = 0.1,
-               outlier.shape                     = NA,
-               position                          = position_nudge(x = -0.2,
-                                                                  y = 0)) +
-  theme_minimal()
-
-# Horizontal Raincloud Plot with Adjusted Violin Scale
-ggplot(data_processed_after_exclusions, aes(y = gender, x = mean_evaluation, fill = gender)) +
-  geom_violin(scale = "width", trim = FALSE) +  # Adjust scale here
-  geom_point(position = position_jitter(height = 0.15), size = 1, alpha = 0.8) +
-  geom_boxplot(width = 0.1, outlier.shape = NA, position = position_nudge(y = -0.2, x = 0)) +
-  coord_flip() +  # Flips the coordinates for horizontal orientation
+ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fill = gender)) +
+  geom_boxplot(width         = 0.1,
+               outlier.shape = NA,
+               position      = position_nudge(x      = -0.2),
+               alpha         = .7) +
+  geom_point(position        = position_jitter(width = .1),
+             aes(color       = gender),
+             alpha           = .75,
+             color           = "black",
+             shape           = 21) +
+  geom_flat_violin(trim=FALSE, alpha = 0.4,
+  position = position_nudge(x = rain_height+.05)) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
   theme_minimal()
 
 ```
@@ -422,9 +427,15 @@ ggplot(data_processed_after_exclusions, aes(y = gender, x = mean_evaluation, fil
 
 ```{r}
 
+data_processed_after_exclusions$gender_numeric <- ifelse(data_processed_after_exclusions$gender == "male", 1, 0)
 
+# Fit the linear model
+model_gender <- lm(mean_evaluation ~ gender_numeric, data = data_processed_after_exclusions)
+summary(model_gender)
 
 ```
+
+I also performed a linear regression test here to see whether there is a difference between gender in mean evaluation. There although the males have a higher average there seems to be no difference between the two genders (p > .109). 
 
 ## Evaluations on the Affect Misattribution Procedure differ between men and women
 
@@ -436,6 +447,86 @@ This time, vary the labeling and order of the legend, e.g., capitalise "Men" and
 
 ```{r}
 
+#histogramm
+
+ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
+  geom_histogram(alpha    = 0.5, 
+                 position = "dodge",
+                 binwidth = .2)+
+                 # alpha    = 0.5, 
+                 # position = "dodge") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(0, 7)) +
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Histogram",
+       x                        = "Mean Evalations",
+       y                        = "Count") +
+  theme_minimal()
+
+ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
+  geom_histogram(alpha    = 0.5, 
+                  position = "dodge",
+                 )+#binwidth = 5,
+                 # alpha    = 0.5, 
+                 # position = "dodge") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(0, 7)) +
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Histogram",
+       x                        = "Mean Evalations",
+       y                        = "Count") +
+  facet_grid(~gender)+
+  theme_minimal()
+
+#violin
+
+ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
+  geom_flat_violin(draw_quantiles = .5, 
+              trim           = TRUE,
+              alpha          = 0.5,) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+   scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Violin Plot of Mean Evaluation",
+       x                        = "Mean Evalations",
+       y                        = "Count")
+  theme_minimal()
+
+#raincloud
+
+rain_height <- .1
+
+ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fill = gender)) +
+  geom_boxplot(width         = 0.1,
+               outlier.shape = NA,
+               position      = position_nudge(x      = -0.2),
+               alpha         = .7) +
+  geom_point(position        = position_jitter(width = .1),
+             aes(color       = gender),
+             alpha           = .75,
+             color           = "black",
+             shape           = 21) +
+  geom_flat_violin(trim=FALSE, alpha = 0.4,
+  position = position_nudge(x = rain_height+.05)) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+     scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Raincloud Plot",
+       x                        = "Gender",
+       y                        = "Mean Evalations")
+  theme_minimal()
 
 
 ```
@@ -446,7 +537,13 @@ This time, vary the labeling and order of the legend, e.g., capitalise "Men" and
 
 ```{r}
 
+# install.packages("report")
+# install.packages("remotes")
+# remotes::install_github("easystats/report") # You only need to do that once
+library(report)
 
+model_amp <- lm(AMP_score ~ gender_numeric, data = data_processed_after_exclusions)
+report(model_amp)
 
 ```
 
@@ -458,7 +555,70 @@ Combine plots using the library [patchwork](https://patchwork.data-imaginist.com
 
 ```{r}
 
+# # install.packages("devtools")
+# devtools::install_github("thomasp85/patchwork")
 
+
+library(patchwork)
+
+p1 <- ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fill = gender)) +
+  geom_boxplot(width         = 0.1,
+               outlier.shape = NA,
+               position      = position_nudge(x      = -0.2),
+               alpha         = .7) +
+  geom_point(position        = position_jitter(width = .1),
+             aes(color       = gender),
+             alpha           = .75,
+             color           = "black",
+             shape           = 21) +
+  geom_flat_violin(trim=FALSE, alpha = 0.4,
+  position = position_nudge(x = rain_height+.05)) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+     scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Raincloud Plot",
+       x                        = "Gender",
+       y                        = "Mean Evalations")
+  theme_minimal()
+p2 <- ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
+  geom_flat_violin(draw_quantiles = .5, 
+              trim           = TRUE,
+              alpha          = 0.5,) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+   scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Violin Plot of Mean Evaluation",
+       x                        = "Mean Evalations",
+       y                        = "Count")
+  theme_minimal()
+  
+p3 <- ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
+  geom_histogram(alpha    = 0.5, 
+                  position = "dodge",
+                 )+#binwidth = 5,
+                 # alpha    = 0.5, 
+                 # position = "dodge") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(0, 7)) +
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Histogram",
+       x                        = "Mean Evalations",
+       y                        = "Count") +
+  facet_grid(~gender)+
+  theme_minimal()
+
+combined_plots <- p1 + p2 + p3
+
+combined_plots
 
 ```
 
@@ -470,7 +630,7 @@ Save plots to disk with `ggsave()`
 
 ```{r}
 
-
+ggsave("combined_plots.png", combined_plots, path = "../data/processed/", width = 20, height = 10)
 
 ```
 
