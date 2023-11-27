@@ -447,6 +447,8 @@ This time, vary the labeling and order of the legend, e.g., capitalise "Men" and
 
 ```{r}
 
+data_processed_after_exclusions$gender <- factor(data_processed_after_exclusions$gender, levels = c("nonbinary", "male", "female"))
+
 #histogramm
 
 ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
@@ -458,9 +460,9 @@ ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender))
   scale_x_continuous(breaks = pretty_breaks(n = 7)) +
   coord_cartesian(xlim = c(0, 7)) +
     scale_fill_discrete(name      = "Gender",
-                      labels    = c("Female",
-                                    "Male",
-                                    "Non-Binary"))+
+                      labels    = c("Non-Binary",
+                                    "Man",
+                                    "Woman"))+
   labs(title                    = "Histogram",
        x                        = "Mean Evalations",
        y                        = "Count") +
@@ -475,9 +477,9 @@ ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender))
   scale_x_continuous(breaks = pretty_breaks(n = 7)) +
   coord_cartesian(xlim = c(0, 7)) +
     scale_fill_discrete(name      = "Gender",
-                      labels    = c("Female",
-                                    "Male",
-                                    "Non-Binary"))+
+                      labels    = c("Non-Binary",
+                                    "Man",
+                                    "Woman"))+
   labs(title                    = "Histogram",
        x                        = "Mean Evalations",
        y                        = "Count") +
@@ -492,13 +494,13 @@ ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluatio
               alpha          = 0.5,) +
   scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
   coord_cartesian(ylim       = c(0, 7)) +
-   scale_fill_discrete(name      = "Gender",
-                      labels    = c("Female",
-                                    "Male",
-                                    "Non-Binary"))+
-  labs(title                    = "Violin Plot of Mean Evaluation",
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Non-Binary",
+                                    "Man",
+                                    "Woman"))+
+  labs(title                    = "Histogram",
        x                        = "Mean Evalations",
-       y                        = "Count")
+       y                        = "Count") +
   theme_minimal()
 
 #raincloud
@@ -519,13 +521,13 @@ ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fil
   position = position_nudge(x = rain_height+.05)) +
   scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
   coord_cartesian(ylim       = c(0, 7)) +
-     scale_fill_discrete(name      = "Gender",
-                      labels    = c("Female",
-                                    "Male",
-                                    "Non-Binary"))+
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Non-Binary",
+                                    "Man",
+                                    "Woman"))+
   labs(title                    = "Raincloud Plot",
        x                        = "Gender",
-       y                        = "Mean Evalations")
+       y                        = "Mean Evalations") +
   theme_minimal()
 
 
