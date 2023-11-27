@@ -35,6 +35,9 @@ library(scales)
 library(PupillometryR)
 library(palmerpenguins)
 library(ggdist)
+library(ggExtra)
+library(ggrepel)
+library(remotes)
 devtools::install_github("psyteachr/introdataviz")
 
 ```
@@ -209,7 +212,7 @@ ggplot(data_processed_after_exclusions, aes(x = AMP_score)) +
                  color = viridis_pal(begin = 0.30, option = "mako")(1)) + 
   xlab("AMP score") +
   ylab("Frequency") +
-  theme_linedraw() +
+  theme_light() +
   scale_x_continuous(breaks = pretty_breaks(n = 10))
 
 ```
@@ -231,27 +234,7 @@ ggplot(data_processed_after_exclusions,
               color = viridis_pal(begin = 0.45, option = "mako")(1)) +
   xlab("AMP score") +
   ylab("Mean self-reported evaluation") +
-  theme_linedraw() 
-
-ggplot(data_processed_after_exclusions, 
-       aes(y = AMP_score,
-           x = mean_evaluation)) +
-  geom_jitter(color = viridis_pal(begin = 0.45, option = "mako")(1),
-              alpha = 0.5) +
-  geom_smooth(method = "lm",
-              color = viridis_pal(begin = 0.45, option = "mako")(1)) +
-  ylab("AMP score") +
-  xlab("Mean self-reported evaluation") +
-  theme_linedraw() 
-
-ggplot(data_processed_after_exclusions, 
-       aes(x = AMP_score,
-           y = mean_evaluation)) +
-  geom_jitter(color = "black",#viridis_pal(begin = 0.45, option = "mako")(1),
-              alpha = 0.5) +
-  xlab("AMP score") +
-  ylab("Mean self-reported evaluation") +
-  theme_linedraw() 
+  theme_minimal() 
 
 ```
 
@@ -262,10 +245,12 @@ More complex plots:
 Scatter plots with axial histograms using ggExtra: https://cran.r-project.org/web/packages/ggExtra/vignettes/ggExtra.html
 
 \TODO add axial histograms to a scatter plot. Split both the scatter plot and the histograms by gender.
+# move legend location!!!!!!!!!!
 
 ```{r}
 
-library(ggExtra)
+# move legend location!!!!!!!
+
 
 piris <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, colour = gender)) +
   geom_point() +
@@ -273,16 +258,13 @@ piris <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_eva
   ylab("Mean self-reported evaluation") +
   theme_minimal()
 
-ggMarginal(piris, type = "histogram",groupColour = TRUE, groupFill = TRUE)
-
-
-
 piris2 <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, colour = gender)) +
   geom_point() +
   xlab("AMP score") +
   ylab("Mean self-reported evaluation") +
   theme_minimal()
 
+ggMarginal(piris, type = "histogram",groupColour = TRUE, groupFill = TRUE)
 ggMarginal(piris2, groupColour = TRUE, groupFill = TRUE)
 ```
 
@@ -293,8 +275,6 @@ Label points using ggrepel: https://cran.r-project.org/web/packages/ggrepel/vign
 \TODO Label the points in a scatter plot using their participant codes.
 
 ```{r}
-
-library(ggrepel)
 
 # repel <- 
 ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, label = subject, colour = gender)) +
@@ -313,7 +293,7 @@ Magnify areas of your plot with ggmagnify: https://hughjonesd.github.io/ggmagnif
 \TODO Magnify an area of one of your scatter plots, eg., where there are a lot of data points in a small area.
 
 ```{r}
-library(remotes)
+
 
 # install.packages("remotes")
 remotes::install_github("hughjonesd/ggmagnify")
@@ -401,8 +381,6 @@ ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluatio
 
 #raincloud
 
-rain_height <- .1
-
 ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fill = gender)) +
   geom_boxplot(width         = 0.1,
                outlier.shape = NA,
@@ -413,8 +391,9 @@ ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fil
              alpha           = .75,
              color           = "black",
              shape           = 21) +
-  geom_flat_violin(trim=FALSE, alpha = 0.4,
-  position = position_nudge(x = rain_height+.05)) +
+  geom_flat_violin(trim=FALSE,
+                   alpha = 0.4,
+                   position = position_nudge(x = .2)) +
   scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
   coord_cartesian(ylim       = c(0, 7)) +
   theme_minimal()
