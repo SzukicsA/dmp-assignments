@@ -1,15 +1,19 @@
 ---
-title: "Examining the relationship between the big-5 personality facets and implicit racial attitudes"
-subtitle: "Details of the assignment"
-author: "Ian Hussey"
+title: "Examining the relationship between the big-5 personality facets and implicit
+  racial attitudes"
+author: "Ian Hussey, Andreas Szukics"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
     code_folding: hide
     highlight: haddock
     theme: flatly
-    toc: yes
-    toc_float: yes
+    toc: true
+    toc_float: true
+    css: styles.css  # Link to a custom CSS file
+  pdf_document:
+    toc: true
+subtitle: Details of the assignment
 ---
 
 The data set was produced by a study which asked each participant to complete (a) between 2 and 3 of the big-5 personality subscales, (b) an Implicit Association Test assessing implicit racial evaluations between African-American and European-American people, an (c) demographics data including age and gender. Note that providing demographics data was optional, so missing demographics data does not constitute incomplete data. 
