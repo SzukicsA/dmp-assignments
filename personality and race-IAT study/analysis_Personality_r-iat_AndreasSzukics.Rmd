@@ -1,0 +1,633 @@
+---
+title: "Evaluations of positive and negative stimuli using the Affective Misattribution Procedure (AMP) and self-reports"
+subtitle: "Analysis"
+author: "Template: Ian Hussey; content: [Student name]"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+    highlight: haddock
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+```{r, include=FALSE}
+
+# set knit options
+knitr::opts_chunk$set(message = FALSE,
+                      warning = FALSE)
+
+# disable scientific notation
+options(scipen = 999) 
+
+```
+
+# Dependencies
+
+```{r}
+
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(janitor)
+library(scales)
+library(PupillometryR)
+library(palmerpenguins)
+library(ggdist)
+library(ggExtra)
+library(ggrepel)
+library(remotes)
+library(ggthemes)
+library(ggsci)
+# devtools::install_github("psyteachr/introdataviz")
+
+```
+
+# Data
+
+Load the processed data and apply the global exclusions.
+
+```{r}
+
+data_processed <- read_csv("../data/processed/data_processed.csv")
+
+data_processed_after_exclusions <- data_processed |>
+  filter(exclude_participant == "include")
+
+```
+
+# Sample descriptives
+
+## Sample size before exclusions
+
+```{r}
+
+data_processed |>
+  count(name = "n") |>
+  kable() |>
+  add_header_above(header = c("Whole sample" = 1)) |> # note that you can add header rows to tables like this. The "1" indicates the number of columns the header should span. The sum of these numbers must equal the number of columns or you'll get an error.
+  kable_classic(full_width = FALSE)
+
+```
+
+## Sample size after exclusions
+
+Sample used in subsequent analyses
+
+```{r}
+
+data_processed_after_exclusions |>
+  count(name = "n") |>
+  kable() |>
+  add_header_above(header = c("For analysis" = 1)) |>
+  kable_classic(full_width = FALSE)
+
+```
+
+## Age
+
+```{r}
+
+data_processed_after_exclusions |>
+  mutate(age = as.numeric(age)) |>
+  summarise(Mean = mean(age, na.rm = TRUE),
+            SD = sd(age, na.rm = TRUE)) |>
+  mutate_all(.funs = janitor::round_half_up, digits = 1) |>
+  kable() |>
+  add_header_above(header = c("Age" = 2)) |>
+  kable_classic(full_width = FALSE)
+
+```
+
+## Gender
+
+```{r}
+
+data_processed_after_exclusions |> 
+  rename(Gender = gender) |>
+  group_by(Gender) |> 
+  summarise(n = n()) |> 
+  mutate(Percent = paste0(round_half_up((n / sum(n)) * 100, 1), "%")) |>
+  mutate(Gender = stringr::str_to_sentence(Gender)) |> # Change the case of the Gender variable so that it prints nicely
+  kable() |>
+  kable_classic(full_width = FALSE)
+
+```
+
+# Descriptives
+
+Descriptive statistics and plots of the measures (excluding the demographics variables)
+
+## Self-reported evaluations
+
+### Descriptive stats
+
+```{r}
+
+# overall self-reported evaluations
+dat_mean_ratings <- data_processed_after_exclusions |>
+  summarise(Mean = mean(mean_evaluation, na.rm = TRUE),
+            SD = sd(mean_evaluation, na.rm = TRUE),
+            n = n()) |>
+  mutate(group = "Full sample")
+
+# self-reported evaluations by gender category
+dat_mean_ratings_by_gender <- data_processed_after_exclusions |>
+  group_by(group = gender) |>
+  summarise(Mean = mean(mean_evaluation, na.rm = TRUE),
+            SD = sd(mean_evaluation, na.rm = TRUE),
+            n = n())
+
+# combine both into one table
+bind_rows(dat_mean_ratings,
+          dat_mean_ratings_by_gender) |>
+  select(Subset = group, Mean, SD, n) |> # select variables of interest, and rename one 
+  mutate(Subset = stringr::str_to_sentence(Subset)) |> # Change the case of the Subset variable so that it prints nicely
+  mutate_if(is.numeric, round_half_up, digits = 2) |>
+  kable() |>
+  add_header_above(header = c(" " = 1, "Self-reported evaluations" = 3)) |>
+  kable_classic(full_width = FALSE)
+
+```
+
+### Descriptive plot
+
+```{r}
+
+ggplot(data_processed_after_exclusions, aes(x = mean_evaluation)) +
+  geom_histogram(binwidth = 0.3,
+                 fill =  "lightblue", 
+                 color = "black") + 
+  xlab("Mean self-reported evaluation") +
+  ylab("Frequency") +
+  theme_linedraw() +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(1, 7)) +
+  theme_clean()
+
+```
+
+## AMP evaluations
+
+### Descriptive stats
+
+\TODO add table of means, SDs, Ns
+
+```{r}
+
+# overall AMP score
+dat_amp_score <- data_processed_after_exclusions |>
+  summarise(Mean = mean(AMP_score, na.rm = TRUE),
+            SD = sd(AMP_score, na.rm = TRUE),
+            n = n()) |>
+  mutate(group = "Full sample")
+
+# self-reported evaluations by gender category
+dat_amp_score_by_gender <- data_processed_after_exclusions |>
+  group_by(group = gender) |>
+  summarise(Mean = mean(AMP_score, na.rm = TRUE),
+            SD = sd(AMP_score, na.rm = TRUE),
+            n = n())
+
+# combine both into one table
+bind_rows(dat_amp_score,
+          dat_amp_score_by_gender) |>
+  select(Subset = group, Mean, SD, n) |> # select variables of interest, and rename one 
+  mutate(Subset = stringr::str_to_sentence(Subset)) |> # Change the case of the Subset variable so that it prints nicely
+  mutate_if(is.numeric, round_half_up, digits = 2) |>
+  kable() |>
+  add_header_above(header = c(" " = 1, "Self-reported evaluations" = 3)) |>
+  kable_classic(full_width = FALSE)
+
+```
+
+### Descriptive plots
+
+```{r}
+
+ggplot(data_processed_after_exclusions, aes(x = AMP_score)) +
+  geom_histogram(binwidth = 0.05,
+                 fill =  "lightblue", 
+                 color = "black") + 
+  scale_colour_viridis_d(option = "plasma") +
+  scale_x_continuous(breaks = pretty_breaks(n = 10)) +
+  xlab("AMP score") +
+  ylab("Frequency") +
+  theme_clean()
+
+```
+
+# Analyses & hypothesis tests
+
+## Self-reported evaluations are correlated with evaluations on the AMP
+
+### Plot
+
+```{r}
+
+ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation)) +
+  geom_jitter(shape = 21,
+              color = "black",
+              alpha = 1,
+              fill = "violet") +
+  geom_smooth(method = "lm",
+              color = "blue") +
+  xlab("AMP score") +
+  ylab("Mean self-reported evaluation") +
+  theme_clean() 
+
+```
+
+More complex plots:
+
+#### Axial hisograms
+
+Scatter plots with axial histograms using ggExtra: https://cran.r-project.org/web/packages/ggExtra/vignettes/ggExtra.html
+
+\TODO add axial histograms to a scatter plot. Split both the scatter plot and the histograms by gender.
+# move legend location!!!!!!!!!!
+
+```{r}
+
+# move legend location!!!!!!!
+
+piris <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, colour = gender)) +
+  geom_point() +
+  scale_y_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim = c(0, 7)) +
+  xlab("AMP score") +
+  ylab("Mean self-reported evaluation") +
+  theme_light()+
+  theme(legend.position = c(0.125,.7))
+
+piris2 <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, colour = gender)) +
+  geom_point() +
+  scale_y_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim = c(0, 7)) +
+  xlab("AMP score") +
+  ylab("Mean self-reported evaluation") +
+  theme_light()+
+  theme(legend.position = "bottom")
+
+ggMarginal(piris, type = "histogram",groupColour = TRUE, groupFill = TRUE) 
+ggMarginal(piris2, groupColour = TRUE, groupFill = TRUE)
+```
+
+#### Labelled points
+
+Label points using ggrepel: https://cran.r-project.org/web/packages/ggrepel/vignettes/ggrepel.html
+
+\TODO Label the points in a scatter plot using their participant codes.
+
+```{r}
+
+# repel <- 
+ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, label = subject, colour = gender)) +
+  geom_point() +
+  theme_minimal() +
+  xlab("AMP score") +
+  ylab("Mean self-reported evaluation") +
+  geom_text_repel()
+
+```
+
+#### Magnify areas
+
+Magnify areas of your plot with ggmagnify: https://hughjonesd.github.io/ggmagnify/
+
+\TODO Magnify an area of one of your scatter plots, eg., where there are a lot of data points in a small area.
+
+```{r}
+
+
+# install.packages("remotes")
+# remotes::install_github("hughjonesd/ggmagnify")
+
+# Alternatively, install ggmagnify from r-universe:
+
+# install.packages("ggmagnify", repos = c("https://hughjonesd.r-universe.dev", 
+#                  "https://cloud.r-project.org"))
+
+library(ggmagnify)
+
+ggp <- ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, label = subject, colour = gender)) + 
+  geom_point() +
+  scale_y_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim = c(1, 7)) +
+  xlab("AMP score") +
+  ylab("Mean self-reported evaluation") +
+  theme_clean()#+
+  # geom_text_repel()
+
+ggp
+
+from <- c(xmin = 0.4, xmax = 0.6, ymin = 1.6, ymax = 3.4)
+# Names xmin, xmax, ymin, ymax are optional:
+to <- c(0.6,  1, 4, 7)
+
+ggp + geom_magnify(from = from, to = to)
+
+```
+
+### Test
+
+\TODO run an appropriate test. Below the output, interpret the results: write a few sentences that report and interpret the results following APA reporting style.
+
+```{r}
+
+
+# Fit the linear model
+model_mean_amp <- lm(mean_evaluation ~ AMP_score, data = data_processed_after_exclusions)
+summary(model_mean_amp)
+
+```
+I performed a linear regression analysis to see whether there was a correlation between mean evaluation and AMP score. The results show that there isn't any relation between the two variables (p > 0.05). Furthermore, the model does not seem to explain very little variance for mean evaluation.
+
+## Self-reported evalautions differ between men and women
+
+### Plot
+
+\TODO split histogram, split violin plot, raincloud plot, etc.
+
+```{r}
+
+#histogramm
+
+ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
+  geom_histogram(alpha    = 0.5, 
+                 position = "dodge",
+                 binwidth = .2)+
+                 # alpha    = 0.5, 
+                 # position = "dodge") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(0, 7)) +
+  theme_minimal()
+
+ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
+  geom_histogram(alpha    = 0.5, 
+                  position = "dodge",
+                 )+#binwidth = 5,
+                 # alpha    = 0.5, 
+                 # position = "dodge") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(0, 7)) +
+  facet_grid(~gender)+
+  theme_minimal()
+
+#violin
+
+ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
+  geom_flat_violin(draw_quantiles = .5, 
+              trim           = TRUE,
+              alpha          = 0.5,) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+  theme_minimal()
+
+#raincloud
+
+ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fill = gender)) +
+  geom_boxplot(width         = 0.1,
+               outlier.shape = NA,
+               position      = position_nudge(x      = -0.2),
+               alpha         = .7) +
+  geom_point(position        = position_jitter(width = .1),
+             aes(color       = gender),
+             alpha           = .75,
+             color           = "black",
+             shape           = 21) +
+  geom_flat_violin(trim=FALSE,
+                   alpha = 0.4,
+                   position = position_nudge(x = .2)) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+  theme_minimal()
+
+```
+
+### Test
+
+\TODO run an appropriate test. Below the output, interpret the results: write a few sentences that report and interpret the results following APA reporting style.
+
+```{r}
+
+data_processed_after_exclusions$gender_numeric <- ifelse(data_processed_after_exclusions$gender == "male", 1, 0)
+
+# Fit the linear model
+model_gender <- lm(mean_evaluation ~ gender_numeric, data = data_processed_after_exclusions)
+summary(model_gender)
+
+```
+
+I also performed a linear regression test here to see whether there is a difference between gender in mean evaluation. There although the males have a higher average there seems to be no difference between the two genders (p > .109). 
+
+## Evaluations on the Affect Misattribution Procedure differ between men and women
+
+### Plot
+
+\TODO split histogram, split violin plot, raincloud plot, etc.
+
+This time, vary the labeling and order of the legend, e.g., capitalise "Men" and "Women", and know how to change the order of the factors.
+
+```{r}
+
+data_processed_after_exclusions$gender <- factor(data_processed_after_exclusions$gender, levels = c("nonbinary", "male", "female"))
+
+#histogramm
+
+ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
+  geom_histogram(alpha    = 0.5, 
+                 position = "dodge",
+                 binwidth = .2)+
+                 # alpha    = 0.5, 
+                 # position = "dodge") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(0, 7)) +
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Non-Binary",
+                                    "Man",
+                                    "Woman"))+
+  labs(title                    = "Histogram",
+       x                        = "Mean Evalations",
+       y                        = "Count") +
+  theme_minimal()
+
+ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
+  geom_histogram(alpha    = 0.5, 
+                  position = "dodge",
+                 )+#binwidth = 5,
+                 # alpha    = 0.5, 
+                 # position = "dodge") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(0, 7)) +
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Non-Binary",
+                                    "Man",
+                                    "Woman"))+
+  labs(title                    = "Histogram",
+       x                        = "Mean Evalations",
+       y                        = "Count") +
+  facet_grid(~gender)+
+  theme_minimal()
+
+#violin
+
+ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
+  geom_flat_violin(draw_quantiles = .5, 
+              trim           = TRUE,
+              alpha          = 0.5,) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Non-Binary",
+                                    "Man",
+                                    "Woman"))+
+  labs(title                    = "Histogram",
+       x                        = "Mean Evalations",
+       y                        = "Count") +
+  theme_minimal()
+
+#raincloud
+
+rain_height <- .1
+
+ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fill = gender)) +
+  geom_boxplot(width         = 0.1,
+               outlier.shape = NA,
+               position      = position_nudge(x      = -0.2),
+               alpha         = .7) +
+  geom_point(position        = position_jitter(width = .1),
+             aes(color       = gender),
+             alpha           = .75,
+             color           = "black",
+             shape           = 21) +
+  geom_flat_violin(trim=FALSE, alpha = 0.4,
+  position = position_nudge(x = rain_height+.05)) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Non-Binary",
+                                    "Man",
+                                    "Woman"))+
+  labs(title                    = "Raincloud Plot",
+       x                        = "Gender",
+       y                        = "Mean Evalations") +
+  theme_minimal()
+
+
+```
+
+### Test
+
+\TODO run an appropriate test. Below the output, print an interpretation of the results generated by the 'easystats' package [report](https://easystats.github.io/report/). I.e., use `report::report()`.
+
+```{r}
+
+# install.packages("report")
+# install.packages("remotes")
+# remotes::install_github("easystats/report") # You only need to do that once
+library(report)
+
+model_amp <- lm(AMP_score ~ gender_numeric, data = data_processed_after_exclusions)
+report(model_amp)
+
+```
+
+## Combining plots
+
+Combine plots using the library [patchwork](https://patchwork.data-imaginist.com/).
+
+\TODO Combine at least three of the above plots into one.
+
+```{r}
+
+# # install.packages("devtools")
+# devtools::install_github("thomasp85/patchwork")
+
+
+library(patchwork)
+
+p1 <- ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fill = gender)) +
+  geom_boxplot(width         = 0.1,
+               outlier.shape = NA,
+               position      = position_nudge(x      = -0.2),
+               alpha         = .7) +
+  geom_point(position        = position_jitter(width = .1),
+             aes(color       = gender),
+             alpha           = .75,
+             color           = "black",
+             shape           = 21) +
+  geom_flat_violin(trim=FALSE, alpha = 0.4,
+  position = position_nudge(x = rain_height+.05)) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+     scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Raincloud Plot",
+       x                        = "Gender",
+       y                        = "Mean Evalations")
+  theme_minimal()
+p2 <- ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
+  geom_flat_violin(draw_quantiles = .5, 
+              trim           = TRUE,
+              alpha          = 0.5,) +
+  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
+  coord_cartesian(ylim       = c(0, 7)) +
+   scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Violin Plot of Mean Evaluation",
+       x                        = "Mean Evalations",
+       y                        = "Count")
+  theme_minimal()
+  
+p3 <- ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
+  geom_histogram(alpha    = 0.5, 
+                  position = "dodge",
+                 )+#binwidth = 5,
+                 # alpha    = 0.5, 
+                 # position = "dodge") +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(0, 7)) +
+    scale_fill_discrete(name      = "Gender",
+                      labels    = c("Female",
+                                    "Male",
+                                    "Non-Binary"))+
+  labs(title                    = "Histogram",
+       x                        = "Mean Evalations",
+       y                        = "Count") +
+  facet_grid(~gender)+
+  theme_minimal()
+
+combined_plots <- p1 + p2 + p3
+
+combined_plots
+
+```
+
+## Saving plots
+
+Save plots to disk with `ggsave()`
+
+\TODO Save the above combined plot to disk as both .png and .pdf. Ensure the png has at least 300dpi resolution.
+
+```{r}
+
+ggsave("combined_plots.png", combined_plots, path = "../data/processed/", width = 20, height = 10)
+
+```
+
+# Session info
+
+```{r}
+
+sessionInfo()
+
+```
+
+
+
