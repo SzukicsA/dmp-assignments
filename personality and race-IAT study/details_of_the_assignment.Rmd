@@ -1,9 +1,11 @@
 ---
 title: "Examining the relationship between the big-5 personality facets and implicit
   racial attitudes"
-author: "Ian Hussey, Andreas Szukics"
+author: "Ian Hussey"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
+  pdf_document:
+    toc: true
   html_document:
     code_folding: hide
     highlight: haddock
@@ -11,8 +13,6 @@ output:
     toc: true
     toc_float: true
     css: styles.css  # Link to a custom CSS file
-  pdf_document:
-    toc: true
 subtitle: Details of the assignment
 ---
 
