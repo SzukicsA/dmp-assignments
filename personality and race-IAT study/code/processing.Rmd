@@ -10,7 +10,7 @@ output:
     theme: flatly
     toc: true
     toc_float: true
-    css: styles.css  # Link to a custom CSS file
+    css: styles.css  # CSS file for costumized html
   pdf_document:
     toc: true
 subtitle: Details of the assignment
@@ -34,22 +34,24 @@ library(openxlsx)
 
 ```
 
-# Get data
+# Loading data
 
 ```{r}
 
-# demographics
-data_dem_raw <- read_csv("data/raw/data_raw_demographics.csv") |>
+# Demographics
+data_dem_raw <- read_csv("../data/raw/data_raw_demographics.csv") |>
   janitor::clean_names()
 view(data_dem_raw)
 
-# self report measure
-data_selfreport_raw <- read_csv("data/raw/data_raw_demographics.csv") |>
+# BFI
+data_bfi_raw <- read_csv("../data/raw/data_raw_bfi.csv") |>
   janitor::clean_names()
+view(data_bfi_raw)
 
-# affect attribution procedure
-data_amp_raw <- read_csv("data/raw/data_raw_demographics.csv") |>
+# IAT
+data_iat_raw <- read_csv("../data/raw/data_raw_iat.csv") |>
   janitor::clean_names()
+view(data_iat_raw)
 
 ```
 

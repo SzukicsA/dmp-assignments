@@ -4,12 +4,16 @@ subtitle: "Analysis"
 author: "Andreas Szukics"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  html_document:
+ html_document:
     code_folding: hide
     highlight: haddock
     theme: flatly
-    toc: yes
-    toc_float: yes
+    toc: true
+    toc_float: true
+    css: styles.css  # Link to a custom CSS file
+  pdf_document:
+    toc: true
+subtitle: Details of the assignment
 ---
 
 ```{r, include=FALSE}
