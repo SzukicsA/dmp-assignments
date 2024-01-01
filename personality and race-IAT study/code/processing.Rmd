@@ -1,15 +1,19 @@
 ---
-title: "Evaluations of positive and negative stimuli using the Affective Misattribution Procedure (AMP) and self-reports"
+title: "Examining the relationship between the big-5 personality facets and implicit racial attitudes"
 subtitle: "Data processing"
-author: "Template: Ian Hussey; content: [Student name]"
+author: "Andreas Szukics"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
     code_folding: hide
     highlight: haddock
     theme: flatly
-    toc: yes
-    toc_float: yes
+    toc: true
+    toc_float: true
+    css: styles.css  # Link to a custom CSS file
+  pdf_document:
+    toc: true
+subtitle: Details of the assignment
 ---
 
 ```{r, include=FALSE}
@@ -35,18 +39,16 @@ library(openxlsx)
 ```{r}
 
 # demographics
-data_demographics_raw <- read_csv("../data/raw/data_demographics_raw.csv") |>
+data_dem_raw <- read_csv("data/raw/data_raw_demographics.csv") |>
   janitor::clean_names()
-
-# data_demographics_raw_messy <- read_csv("../data/raw/data_demographics_raw_messy.csv", skip = 2) |>
-#   janitor::clean_names()
+view(data_dem_raw)
 
 # self report measure
-data_selfreport_raw <- read_csv("../data/raw/data_selfreport_raw.csv") |>
+data_selfreport_raw <- read_csv("data/raw/data_raw_demographics.csv") |>
   janitor::clean_names()
 
 # affect attribution procedure
-data_amp_raw <- read_csv("../data/raw/data_amp_raw.csv") |>
+data_amp_raw <- read_csv("data/raw/data_raw_demographics.csv") |>
   janitor::clean_names()
 
 ```
