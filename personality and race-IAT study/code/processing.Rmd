@@ -23,7 +23,7 @@ knitr::opts_chunk$set(message = FALSE,
 
 ```
 
-# Dependencies
+# Libraries
 
 ```{r}
 
@@ -31,6 +31,7 @@ library(tidyverse)
 library(janitor) # for clean_names()
 library(stringr)
 library(openxlsx)
+library(kableExtra)
 
 ```
 
@@ -59,20 +60,30 @@ view(data_iat_raw)
 
 ```{r}
 
-dat_age_gender <- data_demographics_raw |>
-  select(subject, date, time, trialcode, response) |>
-  pivot_wider(names_from = trialcode,
-              values_from = response) |>
-  mutate(gender = tolower(gender),
-         gender = stringr::str_remove_all(gender, regex("\\W+")), # regex is both very useful and awful to write
-         gender = case_when(gender == "female" ~ gender,
-                            gender == "male" ~ gender,
-                            gender == "nonbinary" ~ gender,
-                            gender == "woman" ~ "female",
-                            gender == "man" ~ "male",
-                            TRUE ~ "other/missing/error"),
-         age = case_when(str_detect(age, "^[0-9]+$") ~ age, # if the value is only numbers, keep it. 
-                         TRUE ~ "other/missing/error")) 
+dat_age_gender <- data_dem_raw |>
+  pivot_wider(names_from  = variable,
+              values_from = response) |> 
+  rename(subject          = unique_id,
+         gender           = sex)      |> 
+  mutate(across(c(age, gender), ~map(.x, unlist))) #|>
+  # mutate(gender = tolower(gender),
+  #        gender = stringr::str_remove_all(gender, regex("\\W+")), # regex is both very useful and awful to write
+  #        gender = case_when(gender == "f" ~ gender,
+  #                           gender == "m" ~ gender,
+  #                           age == "nonbinary" ~ gender,
+  #                           age == "woman" ~ "female",
+  #                           TRUE ~ "other/missing/error"),
+  #        age = case_when(str_detect(age, "^[0-9]+$") ~ age, # if the value is only numbers, keep it.
+  #                        TRUE ~ "other/missing/error"))
+
+# Assuming is your data frame and 'sex' is the column
+unique(dat_age_gender$gender)
+
+class(dat_age_gender$subject)
+
+class(dat_age_gender$gender)
+
+class(dat_age_gender$age)
 
 ```
 
@@ -240,12 +251,12 @@ If it has not already been created, this code write the codebook template to dis
 
 ```{r}
 
-if(!file.exists("../data/processed/data_processed_codebook.xlsx")){
+if(!file.exists("../data/communications/data_processed_codebook.xlsx")){
   # convert the column names to a df
   codebook_template <- data.frame(variable = colnames(data_processed)) |>
     mutate(explanation = NA)
   # write to disk as an excel file
-  write.xlsx(codebook_template, file = "../data/processed/data_processed_codebook.xlsx")
+  write.xlsx(codebook_template, file = "../data/communications/data_processed_codebook.xlsx")
 }
 
 ```
