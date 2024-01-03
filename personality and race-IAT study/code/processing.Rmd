@@ -42,17 +42,21 @@ library(kableExtra)
 # Demographics
 data_dem_raw <- read_csv("../data/raw/data_raw_demographics.csv") |>
   janitor::clean_names()
-view(data_dem_raw)
+
 
 # BFI
 data_bfi_raw <- read_csv("../data/raw/data_raw_bfi.csv") |>
   janitor::clean_names()
-view(data_bfi_raw)
+
 
 # IAT
 data_iat_raw <- read_csv("../data/raw/data_raw_iat.csv") |>
   janitor::clean_names()
-view(data_iat_raw)
+
+
+# view(data_dem_raw)
+# view(data_bfi_raw)
+# view(data_iat_raw)
 
 ```
 
@@ -60,29 +64,75 @@ view(data_iat_raw)
 
 ```{r}
 
-dat_age_gender <- data_dem_raw |>
+map(data_dem_raw, class)
+
+dat_age_gen <- data_dem_raw        |>
   pivot_wider(names_from  = variable,
               values_from = response) |> 
   rename(subject          = unique_id,
-         gender           = sex)      #|>
-  # mutate(gender = tolower(gender),
-  #        gender = stringr::str_remove_all(gender, regex("\\W+")), # regex is both very useful and awful to write
-  #        gender = case_when(gender == "f" ~ gender,
-  #                           gender == "m" ~ gender,
-  #                           age == "nonbinary" ~ gender,
-  #                           age == "woman" ~ "female",
-  #                           TRUE ~ "other/missing/error"),
-  #        age = case_when(str_detect(age, "^[0-9]+$") ~ age, # if the value is only numbers, keep it.
-  #                        TRUE ~ "other/missing/error"))
+          gender          = sex)      |>
+  mutate(gender           = as.character(gender), # case_when does not work otherwise (classed as a list after bivor because of NAs)
+         age              = as.character(age))
 
-map(dat_age_gender, class)
+
+table(dat_age_gen$gender, useNA = "ifany") |>  #checking the values in gender and act accordingly
+  kable()  |>
+  kable_classic(full_width = FALSE)
+
+
+dat_age_gen <- dat_age_gen         |>
+  mutate(gender           = as.character(gender), # case_when does not work otherwise (classed as a list after bivor because of NAs)
+         age              = as.character(age),    # case_when does not work otherwise (classed as a list after bivor because of NAs)
+         gender           = tolower(gender),
+         gender           = stringr::str_remove_all(gender, regex("\\W+")),
+         # checking for NAs and renaming them and changing f/m to female/male
+         gender           = case_when(gender == "f" ~ "female",  
+                                      gender == "m" ~ "male",   
+                                      TRUE ~ "other/missing/error"),
+         age              = case_when(str_detect(age, "^[0-9]+$") ~ age,
+                                      TRUE ~ "other/missing/error"),
+         subject          = case_when(is.na(subject) ~ "other/missing/error",
+                                      TRUE ~ as.character(subject)) # there is one missing subject nr
+         )
+
+
+
+map(dat_age_gen, class) # checking the class for age and gender
 ```
 
-# Exclusions / data quality
+# Data processing
 
-## AMP
+## BFI:
+
+### Reverse scaling
 
 ```{r}
+
+data_bfi_rs <- data_bfi_raw |> 
+  rename(subject = unique_id) |> 
+  mutate_at(vars(bfi_a1, bfi_a3, bfi_a6, bfi_a8,
+                 bfi_c2, bfi_c4, bfi_c5, bfi_c9,
+                 bfi_e2, bfi_e5, bfi_e7,
+                 bfi_n2, bfi_n5, bfi_n7,
+                 bfi_o7, bfi_o9), 
+            ~ ifelse(!is.na(.), 7 - ., NA))  # this is to ignore missing values
+
+```
+
+# Sanity check for reversal
+
+```{r}
+
+
+
+```
+
+
+## IAT
+
+```{r}
+
+map(data_iat_raw, class)
 
 data_amp_performance_criteria <- data_amp_raw |> 
   filter(blockcode != "practice", 
