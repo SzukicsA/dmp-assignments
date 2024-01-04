@@ -118,7 +118,7 @@ data_bfi_rs <- data_bfi_raw |>
 ```
 
 
-# Sanity check for reversal
+### Sanity check for reversal
 
 ```{r}
 
@@ -170,6 +170,7 @@ for (i in seq_along(subscales)) {
 print(cor_matrices)
 
 ```
+### Completeness check
 
 ```{r}
 # List of subscales
@@ -181,21 +182,23 @@ completeness_info <- list()
 
 # Nested loops to check completeness for each subscale
 for (i in seq_along(subscales)) {
-  # Generate column names for the current subscale
-  selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])
-  
-  # Select columns for the current subscale
-  dat_subscale <- data_bfi_rs %>% select(subject, selected_columns)
-  
-  # Check completeness for each subject
-  completeness_subject <- rowSums(!is.na(dat_subscale[, -1])) == num_items[i]
-  
-  # Store completeness information in the list
-  completeness_info[[subscales[i]]] <- data.frame(subject = dat_subscale$subject, complete = completeness_subject)
-}
+  selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])  # Generate column names for the current subscale
+  dat_subscale <- data_bfi_rs %>% select(subject, selected_columns)  # Select columns for the current subscale
+  completeness_subject <- rowSums(!is.na(dat_subscale[, -1])) == num_items[i] # Check completeness for each subject
+  completeness_info[[subscales[i]]] <- data.frame(subject = dat_subscale$subject, complete = completeness_subject) # Store completeness information in the list
+  }
 
-# Print or use the completeness information as needed
-print(completeness_info)
+# Combine completeness information for all subscales
+completeness_combined <- Reduce(function(x, y) merge(x, y, by = "subject", all = TRUE), completeness_info)
+
+# Check if at least 3 subscales are complete for each subject
+completeness_combined$at_least_3_complete <- rowSums(completeness_combined[, -1], na.rm = TRUE) >= 3
+
+# Create a new column "completeness_check" in dat_bfi_rs
+data_bfi_rs$completeness_check <- ifelse(data_bfi_rs$subject %in% completeness_combined$subject[completeness_combined$at_least_3_complete], "include", "exclude")
+
+# Print or use the dat_bfi_rs with the new completeness_check column as needed
+view(data_bfi_rs)
 
 ```
 
