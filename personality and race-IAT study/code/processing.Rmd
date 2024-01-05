@@ -173,6 +173,7 @@ print(cor_matrices)
 ### Completeness check
 
 ```{r}
+
 # List of subscales
 subscales <- c("a", "c", "e", "n", "o")
 num_items <- c(9, 9, 8, 8, 10)
@@ -182,25 +183,108 @@ completeness_info <- list()
 
 # Nested loops to check completeness for each subscale
 for (i in seq_along(subscales)) {
-  selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])  # Generate column names for the current subscale
-  dat_subscale <- data_bfi_rs %>% select(subject, selected_columns)  # Select columns for the current subscale
-  completeness_subject <- rowSums(!is.na(dat_subscale[, -1])) == num_items[i] # Check completeness for each subject
-  completeness_info[[subscales[i]]] <- data.frame(subject = dat_subscale$subject, complete = completeness_subject) # Store completeness information in the list
-  }
+  # Generate column names for the current subscale
+  selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])
+  
+  # Select columns for the current subscale
+  dat_subscale <- data_bfi_rs %>% select(subject, selected_columns)
+  
+  # Check if subscale has been started
+  subscale_started <- rowSums(!is.na(dat_subscale[, -1])) > 0
+  
+  # Check if subscale has been completed
+  subscale_completed <- rowSums(!is.na(dat_subscale[, -1])) == num_items[i]
+  
+  # Mark subjects who started but didn't complete the subscale
+  subscale_started_but_not_completed <- subscale_started & !subscale_completed
+  
+  # Store completeness information in the list
+  completeness_info[[subscales[i]]] <- data.frame(subject = dat_subscale$subject, 
+                                                   started = subscale_started,
+                                                   incomplete = subscale_started_but_not_completed)
+}
 
 # Combine completeness information for all subscales
 completeness_combined <- Reduce(function(x, y) merge(x, y, by = "subject", all = TRUE), completeness_info)
 
-# Check if at least 3 subscales are complete for each subject
-completeness_combined$at_least_3_complete <- rowSums(completeness_combined[, -1], na.rm = TRUE) >= 3
+# Check if at least 2 subscales are complete for each subject
+completeness_combined$at_least_2_complete <- rowSums(completeness_combined[, -1], na.rm = TRUE) >= 2
 
-# Create a new column "completeness_check" in dat_bfi_rs
-data_bfi_rs$completeness_check <- ifelse(data_bfi_rs$subject %in% completeness_combined$subject[completeness_combined$at_least_3_complete], "include", "exclude")
+# Check if there are no subscales that have been started and are incomplete
+no_started_incomplete_subscale <- rowSums(completeness_combined[, grep("incomplete", names(completeness_combined))], na.rm = TRUE) == 0
 
-# Print or use the dat_bfi_rs with the new completeness_check column as needed
+# Create a new column "completeness_check" in data_bfi_rs
+data_bfi_rs$completeness_check <- ifelse(data_bfi_rs$subject %in% completeness_combined$subject[completeness_combined$at_least_2_complete & no_started_incomplete_subscale], "include", "exclude")
+
+
+# Print or use the data_bfi_rs with the new completeness_check column as needed
 view(data_bfi_rs)
 
+
 ```
+
+```{r}
+
+# List of subscales
+subscales <- c("a", "c", "e", "n", "o")
+num_items <- c(9, 9, 8, 8, 10)
+
+# Create an empty list to store completeness information
+completeness_info <- list()
+
+# Get the subject column
+subject_column <- data_bfi_rs$subject
+
+# Nested loops to check completeness for each subscale
+for (i in seq_along(subscales)) {
+  # Generate column names for the current subscale
+  selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])
+  
+  # Select columns for the current subscale
+  dat_subscale <- data_bfi_rs %>% select(subject, selected_columns)
+  
+  # Check if subscale has been started
+  subscale_started <- rowSums(!is.na(dat_subscale[, -1])) > 0
+  
+  # Check if subscale has been completed
+  subscale_completed <- rowSums(!is.na(dat_subscale[, -1])) == num_items[i]
+  
+  # Mark subjects who started but didn't complete the subscale
+  subscale_started_but_not_completed <- subscale_started & !subscale_completed
+  
+  # Check if values in completed subscales are within 1 and 6 (only for started subscales)
+  subscale_values_within_range <- apply(dat_subscale[subscale_started, -1], 1, function(row) all(row >= 1 & row <= 6))
+  
+  # Store completeness information in the list
+  completeness_info[[subscales[i]]] <- data.frame(subject = subject_column,
+                                                   started = subscale_started,
+                                                   incomplete = subscale_started_but_not_completed,
+                                                   values_within_range = subscale_values_within_range)
+}
+
+# Combine completeness information for all subscales
+completeness_combined <- Reduce(function(x, y) merge(x, y, by = "subject", all = TRUE), completeness_info)
+
+# Check if at least 2 subscales are complete for each subject
+completeness_combined$at_least_2_complete <- rowSums(completeness_combined[, -1], na.rm = TRUE) >= 2
+
+# Check if there are no subscales that have been started and are incomplete
+no_started_incomplete_subscale <- rowSums(completeness_combined[, grep("incomplete", names(completeness_combined))], na.rm = TRUE) == 0
+
+# Check if all values in started subscales are within 1 and 6
+values_within_range <- rowSums(completeness_combined[, grep("values_within_range", names(completeness_combined))], na.rm = TRUE) == length(subscales)
+
+# Create a new column "completeness_check" in data_bfi_rs
+data_bfi_rs$completeness_check <- ifelse(data_bfi_rs$subject %in% completeness_combined$subject[completeness_combined$at_least_2_complete & no_started_incomplete_subscale & values_within_range], "include", "exclude")
+
+# Print or use the data_bfi_rs with the new completeness_check column as needed
+view(data_bfi_rs)
+
+
+
+```
+
+
 
 
 ## IAT
