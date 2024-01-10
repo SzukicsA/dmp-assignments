@@ -240,16 +240,16 @@ for (i in seq_along(subscales)) {
   subjects_with_NAs[[subscales[i]]] <- c()
   
   for (subject in started_subjects) {
-    # Extract responses for this subject and subscale
-    subject_responses <- dat_subscale[dat_subscale$subject == subject, -1]
+   
+    subject_responses <- dat_subscale[dat_subscale$subject == subject, -1]  # Extract responses for this subject and subscale
 
-    # Check for values outside the 1-6 range
-    if (any(subject_responses < 1 | subject_responses > 6, na.rm = TRUE)) {
+    
+    if (any(subject_responses < 1 | subject_responses > 6, na.rm = TRUE)) { # Check for values outside the 1-6 range
       subjects_outside_range[[subscales[i]]] <- c(subjects_outside_range[[subscales[i]]], subject)
     }
 
-    # Check for NA values
-    if (any(is.na(subject_responses))) {
+    
+    if (any(is.na(subject_responses))) { # Check for NA values
       subjects_with_NAs[[subscales[i]]] <- c(subjects_with_NAs[[subscales[i]]], subject)
     }
   }
@@ -354,19 +354,19 @@ mean_score_bfi <- mean_score_bfi %>%
 
 # Initial processing and calculations
 data_iat_var <- data_iat_raw |>
-  slice(-1) |>  # Removing the first row for column names
-  setNames(as.character(unlist(data_iat_raw[1, ]))) |> # Setting first row as variables
-  clean_names() |> # Adjusting the variable names to snake case
+  slice(-1) |>                                                         # Removing the first row for column names
+  setNames(as.character(unlist(data_iat_raw[1, ]))) |>                 # Setting first row as variables
+  clean_names() |>                                                     # Adjusting the variable names to snake case
   rename(subject  = unique_id,
          rt       = trial_reaction_time_in_ms,
          accuracy = trial_accuracy,
          block    = block_number) |>
-  filter(!block %in% c(1, 2, 5)) |>  # Removing blocks 1, 2, and 5
+  filter(!block %in% c(1, 2, 5)) |>                                    # Removing blocks 1, 2, and 5
   group_by(subject) |> 
-  mutate(trial_count = n()) |> # Counting the number of trials per subject in each group
-  ungroup() |> # Ungrouping to apply the next operations to the entire dataset
+  mutate(trial_count = n()) |>                                         # Counting the number of trials per subject in each group
+  ungroup() |>                                                         # Ungrouping to apply the next operations to the entire dataset
   mutate(include_exclude_iat = ifelse(trial_count == 120, "include", "exclude"),
-         rt              = as.numeric(rt)) |>   # Marking subjects as include or exclude
+         rt              = as.numeric(rt)) |>                          # Marking subjects as include or exclude
   mutate(latency_prob  = if_else(rt < 300, TRUE, FALSE),
          accuracy_prob = if_else(accuracy == "correct", TRUE, FALSE))  # Marking subjects as include or exclude
   
@@ -425,8 +425,8 @@ mean_score_iat <- data_iat_var %>%
     D_check = ifelse(D > -2 & D < 2, "within range", "outside range")
   )
 
-# Join the include_exclude_iat column
-mean_score_iat <- mean_score_iat %>%
+# adding the include_exclude_iat column
+mean_score_iat <- mean_score_iat |> 
   left_join(data_iat_var %>% select(subject, include_exclude_iat) %>% distinct(), by = "subject")
 
 # View the updated dataframe
@@ -439,12 +439,13 @@ mean_score_iat <- mean_score_iat %>%
 # Combining demographics, BFI and IAT
 
 ```{r}
+# Checking variable subject class
+# map(data_age_gen, class)
+# map(data_bfi_check, class)
+# map(mean_score_bfi, class)
+# map(mean_score_iat, class)
 
-map(data_age_gen, class)
-map(data_bfi_check, class)
-map(mean_score_bfi, class)
-map(mean_score_iat, class)
-
+#changing subject class to character because the join wont work
 data_bfi_check <- data_bfi_check|> 
   mutate(subject = as.character(subject))
 mean_score_bfi <- mean_score_bfi|> 
@@ -452,7 +453,7 @@ mean_score_bfi <- mean_score_bfi|>
 
 # combine all dfs created in the previous chunks
 data_processed_temp <- data_age_gen |> 
-  inner_join(data_bfi_check, by = "subject") |> 
+  inner_join(data_bfi_check, by = "subject") |> #using inner_join because data_age_gen has many more entries 
   inner_join(mean_score_bfi, by = "subject") |> 
   inner_join(mean_score_iat, by = "subject") 
 
@@ -460,7 +461,7 @@ data_processed_temp <- data_age_gen |>
 
 
 # flag all subjects with more than one row in the wide-format data. these should be excluded in the analysis.
-# a more elaborate approach would be to track down the individual dupicate cases and determine which of the mulitiple cases should be retained. 
+# a more elaborate approach would be to track down the individual dupicate cases and determine which of the multiple cases should be retained. 
 data_processed_duplicates <- data_processed_temp |>
   count(subject) |>
   mutate(exclude_duplicate_data = if_else(n > 1, "exclude", "include")) |>
@@ -472,30 +473,6 @@ data_processed_before_exclusions <- data_processed_temp |>
 
 ```
 
-
-# Combine
-
-```{r}
-
-# combine all dfs created in the previous chunks
-data_processed_temp <- dat_age_gender |>
-  full_join(data_selfreport_scored, by = "subject") |> 
-  full_join(data_amp_score, by = "subject") |> 
-  full_join(data_amp_performance_criteria, by = "subject") |>
-  full_join(data_amp_completeness, by = "subject")
-
-# flag all subjects with more than one row in the wide-format data. these should be excluded in the analysis.
-# a more elaborate approach would be to track down the individual dupicate cases and determine which of the mulitiple cases should be retained. 
-data_processed_duplicates <- data_processed_temp |>
-  count(subject) |>
-  mutate(exclude_duplicate_data = if_else(n > 1, "exclude", "include")) |>
-  select(-n)
-
-# join in the duplicates df
-data_processed_before_exclusions <- data_processed_temp |>
-  full_join(data_processed_duplicates, by = "subject")
-
-```
 
 # Define master exclusions
 
