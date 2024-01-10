@@ -5,7 +5,7 @@ author: "Andreas Szukics"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
-    code_folding: hide
+    # code_folding: hide
     highlight: haddock
     theme: flatly
     toc: yes

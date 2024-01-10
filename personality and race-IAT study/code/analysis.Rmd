@@ -5,7 +5,7 @@ author: "Andreas Szukics"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
  html_document:
-    code_folding: hide
+    # code_folding: hide
     highlight: haddock
     theme: flatly
     toc: yes
@@ -24,14 +24,15 @@ options(scipen = 999)
 
 ```
 
-# Dependencies
+# Libraries
 
-```{r}
+```{r, echo = FALSE}
 
 library(tidyverse)
 library(knitr)
 library(kableExtra)
 library(janitor)
+library(ltm)
 library(scales)
 library(PupillometryR)
 library(palmerpenguins)
@@ -45,20 +46,20 @@ library(ggsci)
 
 ```
 
+
 # Data
 
-Load the processed data and apply the global exclusions.
+## Load the processed data 
 
-```{r}
+```{r, echo = FALSE}
 
+# Loading data
 data_processed <- read_csv("../data/processed/data_processed.csv")
-
-data_processed_after_exclusions <- data_processed |>
-  filter(exclude_participant == "include")
 
 ```
 
-# Sample descriptives
+
+# Descriptive tables
 
 ## Sample size before exclusions
 
@@ -71,6 +72,18 @@ data_processed |>
   kable_classic(full_width = FALSE)
 
 ```
+
+
+## Dataframe without excluded subject
+
+```{r}
+
+# Loading only subject to be included
+data_processed_after_exclusions <- data_processed |>
+  filter(exclude_participant == "include")
+
+```
+
 
 ## Sample size after exclusions
 
@@ -85,6 +98,7 @@ data_processed_after_exclusions |>
   kable_classic(full_width = FALSE)
 
 ```
+
 
 ## Age
 
@@ -101,6 +115,7 @@ data_processed_after_exclusions |>
 
 ```
 
+
 ## Gender
 
 ```{r}
@@ -116,43 +131,51 @@ data_processed_after_exclusions |>
 
 ```
 
-# Descriptives
 
-Descriptive statistics and plots of the measures (excluding the demographics variables)
+# Descriptive statistics
 
-## Self-reported evaluations
-
-### Descriptive stats
+## Cronbach alpha calculation
 
 ```{r}
 
-# overall self-reported evaluations
-dat_mean_ratings <- data_processed_after_exclusions |>
-  summarise(Mean = mean(mean_evaluation, na.rm = TRUE),
-            SD = sd(mean_evaluation, na.rm = TRUE),
-            n = n()) |>
-  mutate(group = "Full sample")
+# List of subscales
+subscales <- c("a", "c", "e", "n", "o")
+num_items <- c(9, 9, 8, 8, 10)
 
-# self-reported evaluations by gender category
-dat_mean_ratings_by_gender <- data_processed_after_exclusions |>
-  group_by(group = gender) |>
-  summarise(Mean = mean(mean_evaluation, na.rm = TRUE),
-            SD = sd(mean_evaluation, na.rm = TRUE),
-            n = n())
+# Empty list to store Cronbach's alpha values
+cronbach_alphas <- list()
 
-# combine both into one table
-bind_rows(dat_mean_ratings,
-          dat_mean_ratings_by_gender) |>
-  select(Subset = group, Mean, SD, n) |> # select variables of interest, and rename one 
-  mutate(Subset = stringr::str_to_sentence(Subset)) |> # Change the case of the Subset variable so that it prints nicely
-  mutate_if(is.numeric, round_half_up, digits = 2) |>
-  kable() |>
-  add_header_above(header = c(" " = 1, "Self-reported evaluations" = 3)) |>
-  kable_classic(full_width = FALSE)
+# Loop to compute Cronbach's alpha for each subscale
+for (i in seq_along(subscales)) {
+    # Generate column names for the current subscale
+    selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])
+  
+    # Filter rows where all items in the subscale are complete (no NAs)
+    # Using a standard subsetting approach instead of all_of
+    dat_subscale <- data_processed_after_exclusions[, selected_columns, drop = FALSE] |>
+                    na.omit()
+
+    # Check if the subscale has sufficient data for alpha calculation
+    if(nrow(dat_subscale) > 1) {
+        # Compute Cronbach's alpha
+        alpha_subscale <- cronbach.alpha(dat_subscale)$alpha
+    } else {
+        alpha_subscale <- NA  # Assign NA if not enough data
+    }
+  
+    # Store the alpha coefficient in the list
+    cronbach_alphas[[subscales[i]]] <- alpha_subscale
+}
+
+# Print Cronbach's alpha values
+print(cronbach_alphas)
+
 
 ```
 
-### Descriptive plot
+# Plotting
+
+## Histogramms
 
 ```{r}
 
@@ -168,6 +191,7 @@ ggplot(data_processed_after_exclusions, aes(x = mean_evaluation)) +
   theme_clean()
 
 ```
+
 
 ## AMP evaluations
 
@@ -203,6 +227,7 @@ bind_rows(dat_amp_score,
 
 ```
 
+
 ### Descriptive plots
 
 ```{r}
@@ -218,6 +243,7 @@ ggplot(data_processed_after_exclusions, aes(x = AMP_score)) +
   theme_clean()
 
 ```
+
 
 # Analyses & hypothesis tests
 
@@ -239,6 +265,7 @@ ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation))
   theme_clean() 
 
 ```
+
 
 More complex plots:
 
@@ -275,6 +302,7 @@ ggMarginal(piris, type = "histogram",groupColour = TRUE, groupFill = TRUE)
 ggMarginal(piris2, groupColour = TRUE, groupFill = TRUE)
 ```
 
+
 #### Labelled points
 
 Label points using ggrepel: https://cran.r-project.org/web/packages/ggrepel/vignettes/ggrepel.html
@@ -293,6 +321,7 @@ ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, 
 
 ```
 
+
 #### Magnify areas
 
 Magnify areas of your plot with ggmagnify: https://hughjonesd.github.io/ggmagnify/
@@ -300,15 +329,6 @@ Magnify areas of your plot with ggmagnify: https://hughjonesd.github.io/ggmagnif
 \TODO Magnify an area of one of your scatter plots, eg., where there are a lot of data points in a small area.
 
 ```{r}
-
-
-# install.packages("remotes")
-# remotes::install_github("hughjonesd/ggmagnify")
-
-# Alternatively, install ggmagnify from r-universe:
-
-# install.packages("ggmagnify", repos = c("https://hughjonesd.r-universe.dev", 
-#                  "https://cloud.r-project.org"))
 
 library(ggmagnify)
 
@@ -331,6 +351,7 @@ ggp + geom_magnify(from = from, to = to)
 
 ```
 
+
 ### Test
 
 \TODO run an appropriate test. Below the output, interpret the results: write a few sentences that report and interpret the results following APA reporting style.
@@ -344,6 +365,7 @@ summary(model_mean_amp)
 
 ```
 I performed a linear regression analysis to see whether there was a correlation between mean evaluation and AMP score. The results show that there isn't any relation between the two variables (p > 0.05). Furthermore, the model does not seem to explain very little variance for mean evaluation.
+
 
 ## Self-reported evalautions differ between men and women
 
@@ -407,6 +429,7 @@ ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fil
 
 ```
 
+
 ### Test
 
 \TODO run an appropriate test. Below the output, interpret the results: write a few sentences that report and interpret the results following APA reporting style.
@@ -422,6 +445,7 @@ summary(model_gender)
 ```
 
 I also performed a linear regression test here to see whether there is a difference between gender in mean evaluation. There although the males have a higher average there seems to be no difference between the two genders (p > .109). 
+
 
 ## Evaluations on the Affect Misattribution Procedure differ between men and women
 
@@ -519,6 +543,7 @@ ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fil
 
 ```
 
+
 ### Test
 
 \TODO run an appropriate test. Below the output, print an interpretation of the results generated by the 'easystats' package [report](https://easystats.github.io/report/). I.e., use `report::report()`.
@@ -534,6 +559,7 @@ model_amp <- lm(AMP_score ~ gender_numeric, data = data_processed_after_exclusio
 report(model_amp)
 
 ```
+
 
 ## Combining plots
 
@@ -610,6 +636,7 @@ combined_plots
 
 ```
 
+
 ## Saving plots
 
 Save plots to disk with `ggsave()`
@@ -621,6 +648,7 @@ Save plots to disk with `ggsave()`
 ggsave("combined_plots.png", combined_plots, path = "../data/processed/", width = 20, height = 10)
 
 ```
+
 
 # Session info
 
