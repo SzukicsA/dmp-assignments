@@ -8,12 +8,9 @@ output:
     code_folding: hide
     highlight: haddock
     theme: flatly
-    toc: true
-    toc_float: true
-    css: styles.css  # Link to a custom CSS file
-  pdf_document:
-    toc: true
-subtitle: Details of the assignment
+    toc: yes
+    toc_float: yes
+    css: styles.css  # CSS file for costumized html
 ---
 
 ```{r, include=FALSE}

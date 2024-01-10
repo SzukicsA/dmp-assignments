@@ -28,7 +28,7 @@ knitr::opts_chunk$set(message = FALSE,
 library(tidyverse)
 library(knitr)
 library(kableExtra)
-library(janitor) # for clean_names()
+library(janitor)
 library(stringr)
 library(openxlsx)
 
@@ -64,37 +64,37 @@ data_iat_raw <- read_csv("../data/raw/data_raw_iat.csv") |>
 # Demographics
 
 ```{r}
-
+# Checking variables' class
 map(data_dem_raw, class)
 
-data_age_gen <- data_dem_raw        |>
+
+data_age_gen <- data_dem_raw |>
   pivot_wider(names_from  = variable,
               values_from = response) |> 
   rename(subject = unique_id,
-          gender = sex)      |>
+          gender = sex) |>
   mutate(gender = as.character(gender), # case_when does not work otherwise (classed as a list after bivor because of NAs)
          age    = as.character(age))
 
 
-table(data_age_gen$gender, useNA = "ifany") |>  #checking the values in gender and act accordingly
+table(data_age_gen$gender, useNA = "ifany") |>  #checking the values in gender to use below
   kable()  |>
   kable_classic(full_width = FALSE)
 
 
 data_age_gen <- data_age_gen         |>
-  mutate(gender           = as.character(gender), # case_when does not work otherwise (classed as a list after bivor because of NAs)
-         age              = as.character(age),    # case_when does not work otherwise (classed as a list after bivor because of NAs)
-         gender           = tolower(gender),
-         gender           = stringr::str_remove_all(gender, regex("\\W+")),
+  mutate(gender  = as.character(gender), # case_when does not work otherwise (classed as a list after bivor because of NAs)
+         age     = as.character(age),    # case_when does not work otherwise (classed as a list after bivor because of NAs)
+         gender  = tolower(gender),
+         gender  = stringr::str_remove_all(gender, regex("\\W+")),
+         gender  = case_when(gender == "f" ~ "female",  # checking for NAs and renaming them and changing f/m to female/male
+                             gender == "m" ~ "male",   
+                             TRUE ~ "other/missing/error"),
+         age     = case_when(str_detect(age, "^[0-9]+$") ~ age,
+                             TRUE ~ "other/missing/error"),
+         subject = case_when(is.na(subject) ~ "other/missing/error",
+                             TRUE ~ as.character(subject))) # there is one missing subject nr
          
-         gender           = case_when(gender == "f" ~ "female",  # checking for NAs and renaming them and changing f/m to female/male
-                                      gender == "m" ~ "male",   
-                                      TRUE ~ "other/missing/error"),
-         age              = case_when(str_detect(age, "^[0-9]+$") ~ age,
-                                      TRUE ~ "other/missing/error"),
-         subject          = case_when(is.na(subject) ~ "other/missing/error",
-                                      TRUE ~ as.character(subject)) # there is one missing subject nr
-         )
 
 
 
@@ -117,20 +117,19 @@ data_bfi_rs <- data_bfi_raw |>
                  bfi_e2, bfi_e5, bfi_e7,
                  bfi_n2, bfi_n5, bfi_n7,
                  bfi_o7, bfi_o9), 
-            ~ ifelse(!is.na(.), 7 - ., NA) # this is to ignore missing values
-            )  
-
+            ~ ifelse(!is.na(.), 7 - ., NA)) # this is to ignore missing values
+              
 ```
 
 
-#### Sanity check for reversal
+#### Sanity check for reversal (correlations)
 
 ```{r}
 # List of subscales
 subscales <- c("a", "c", "e", "n", "o")
 num_items <- c(9, 9, 8, 8, 10)
 
-# Create an empty list to store correlation matrices
+# Wmpty list to store correlation matrices
 cor_matrices <- list()
 
 # Nested loops to compute correlations for each subscale
@@ -138,17 +137,14 @@ for (i in seq_along(subscales)) {
   
   selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i]) # Generate column names for the current subscale
   
-  
-  dat_subscale <- data_bfi_rs %>% select(selected_columns) # Select columns for the current subscale
-  
+  dat_subscale <- data_bfi_rs |> select(selected_columns) # Select columns for the current subscale
   
   cor_matrix <- cor(dat_subscale, use = "pairwise.complete.obs") # Compute correlation matrix
-  
   
   cor_matrices[[subscales[i]]] <- cor_matrix # Store the correlation matrix in the list
 }
 
-# Print or use the correlation matrices as needed
+# Print correlations
 print(cor_matrices)
 
 ```
@@ -161,25 +157,30 @@ print(cor_matrices)
 subscales <- c("a", "c", "e", "n", "o")
 num_items <- c(9, 9, 8, 8, 10)
 
+
 # Create an empty list to store completeness information
 completeness_info <- list()
 
 for (i in seq_along(subscales)) {
     selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])
+    
   
     # Select columns for the current subscale
     dat_subscale <- data_bfi_rs |>
       select(subject, selected_columns)
     
+    
     # Check if subscale has been started or completed
     subscale_started <- rowSums(!is.na(dat_subscale[, -1])) > 0
     subscale_completed <- rowSums(!is.na(dat_subscale[, -1])) == num_items[i]
     subscale_started_but_not_completed <- subscale_started & !subscale_completed
+    
   
     # Store completeness information in the list
     completeness_info[[subscales[i]]] <- data.frame(subject = dat_subscale$subject, 
                                                     started = subscale_started,
                                                     incomplete = subscale_started_but_not_completed)
+    
 
     # Additional check for range of responses within 1 to 6
     included_subjects <- dat_subscale$subject[subscale_completed]
@@ -187,7 +188,6 @@ for (i in seq_along(subscales)) {
     for (subject in included_subjects) {
         # Extract the responses for this subject and subscale
         subject_responses <- dat_subscale[dat_subscale$subject == subject, -1]
-
         # Check if any response is outside the 1-6 range
         if (any(subject_responses < 1 | subject_responses > 6, na.rm = TRUE)) {
             # Mark as incomplete in the completeness_info list
@@ -199,12 +199,15 @@ for (i in seq_along(subscales)) {
 # Combine completeness information for all subscales
 completeness_combined <- Reduce(function(x, y) merge(x, y, by = "subject", all = TRUE), completeness_info)
 
+
 # Determine if at least 2 subscales are complete and no subscales started but not completed
 completeness_combined$at_least_2_complete <- rowSums(completeness_combined[, -1], na.rm = TRUE) >= 2
 no_started_incomplete_subscale <- rowSums(completeness_combined[, grep("incomplete", names(completeness_combined))], na.rm = TRUE) == 0
 
+
 # Create the 'include_exclude' column
 completeness_combined$include_exclude_bfi <- ifelse(completeness_combined$at_least_2_complete & no_started_incomplete_subscale, "include", "exclude")
+
 
 # Merge with the original BFI data
 data_bfi_check <- merge(data_bfi_rs, completeness_combined[, c("subject", "include_exclude_bfi")], by = "subject", all.x = TRUE) 
@@ -220,6 +223,7 @@ data_bfi_check <- merge(data_bfi_rs, completeness_combined[, c("subject", "inclu
 subscales <- c("a", "c", "e", "n", "o")
 num_items <- c(9, 9, 8, 8, 10)
 
+
 # Initialize lists to store subjects
 subjects_outside_range <- list()
 subjects_with_NAs <- list()
@@ -227,13 +231,16 @@ subjects_with_NAs <- list()
 for (i in seq_along(subscales)) {
   selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])
   
+  
   # Select columns for the current subscale
   dat_subscale <- data_bfi_rs |>
     select(subject, selected_columns)
+  
 
   # Check if subscale has been started
   subscale_started <- rowSums(!is.na(dat_subscale[, -1])) > 0
   started_subjects <- dat_subscale$subject[subscale_started]
+  
 
   # Initialize vectors to store subjects for this subscale
   subjects_outside_range[[subscales[i]]] <- c()
@@ -255,9 +262,11 @@ for (i in seq_along(subscales)) {
   }
 }
 
+
 # Combine lists into a named list for easy reference
 final_list <- list(subjects_outside_range = subjects_outside_range,
                    subjects_with_NAs = subjects_with_NAs)
+
 
 # View the final list
 print(final_list)
@@ -272,28 +281,29 @@ print(final_list)
 # List of subscales
 subscales <- c("a", "c", "e", "n", "o")
 
+
 # Function to calculate mean for a given subscale
 calculate_mean_subscale <- function(data, subscale) {
-  data %>%
-    select(starts_with(paste0("bfi_", subscale))) %>%
+  data |>
+    select(starts_with(paste0("bfi_", subscale))) |>
     rowMeans(na.rm = TRUE)
 }
 
+
 # Calculate mean scores for each subscale for each subject
-mean_score_bfi <- data_bfi_check %>%
-  group_by(subject) %>%
-  summarize(
-    mean_a = calculate_mean_subscale(cur_data(), "a"),
-    mean_c = calculate_mean_subscale(cur_data(), "c"),
-    mean_e = calculate_mean_subscale(cur_data(), "e"),
-    mean_n = calculate_mean_subscale(cur_data(), "n"),
-    mean_o = calculate_mean_subscale(cur_data(), "o"),
-    .groups = "drop"
-  )
+mean_score_bfi <- data_bfi_check |>
+  group_by(subject) |>
+  summarize(mean_a = calculate_mean_subscale(cur_data(), "a"),
+            mean_c = calculate_mean_subscale(cur_data(), "c"),
+            mean_e = calculate_mean_subscale(cur_data(), "e"),
+            mean_n = calculate_mean_subscale(cur_data(), "n"),
+            mean_o = calculate_mean_subscale(cur_data(), "o"),
+            .groups = "drop")
+
 
 # adding the include_exclude_bfi column to the mean_score_bfi dataframe
-mean_score_bfi <- mean_score_bfi %>%
-  left_join(data_bfi_check %>% select(subject, include_exclude_bfi), by = "subject")
+mean_score_bfi <- mean_score_bfi |>
+  left_join(data_bfi_check |> select(subject, include_exclude_bfi), by = "subject")
 
 
 # View the mean scores per subject
@@ -307,16 +317,18 @@ mean_score_bfi <- mean_score_bfi %>%
 ```{r}
 
 # Filter for included subjects
-included_subjects <- data_bfi_check %>%
+included_subjects <- data_bfi_check |>
   filter(include_exclude_bfi == "include")
+
 
 # Function to find min and max values for each subscale
 find_min_max <- function(data, subscale) {
-  min_max <- data %>%
-    select(starts_with(subscale)) %>%
+  min_max <- data |>
+    select(starts_with(subscale)) %>% 
     summarise(min = min(., na.rm = TRUE), max = max(., na.rm = TRUE))
   return(min_max)
 }
+
 
 # Find min and max for each subscale based on included subjects
 min_max_a <- find_min_max(included_subjects, "bfi_a")
@@ -325,20 +337,20 @@ min_max_e <- find_min_max(included_subjects, "bfi_e")
 min_max_n <- find_min_max(included_subjects, "bfi_n")
 min_max_o <- find_min_max(included_subjects, "bfi_o")
 
-# Function to check if mean is within the range
-check_mean_range <- function(mean_score, min, max) {
-  ifelse(mean_score >= min & mean_score <= max, "Valid", "Invalid")
-}
 
-# Apply the range check to each mean subscale score for all subjects in mean_score_bfi
-mean_score_bfi <- mean_score_bfi %>%
-  mutate(
-    check_mean_a = check_mean_range(mean_a, min_max_a$min, min_max_a$max),
-    check_mean_c = check_mean_range(mean_c, min_max_c$min, min_max_c$max),
-    check_mean_e = check_mean_range(mean_e, min_max_e$min, min_max_e$max),
-    check_mean_n = check_mean_range(mean_n, min_max_n$min, min_max_n$max),
-    check_mean_o = check_mean_range(mean_o, min_max_o$min, min_max_o$max)
-  )
+# Function to check if mean is within the range
+check_mean_range <- function(mean_score, min, max) {ifelse(mean_score >= min & mean_score <= max, "Valid", "Invalid")}
+
+
+# Checking the range check of each mean subscale score for all subjects 
+mean_score_bfi <- mean_score_bfi |> 
+  mutate(check_mean_a = check_mean_range(mean_a, min_max_a$min, min_max_a$max),
+         check_mean_c = check_mean_range(mean_c, min_max_c$min, min_max_c$max),
+         check_mean_e = check_mean_range(mean_e, min_max_e$min, min_max_e$max),
+         check_mean_n = check_mean_range(mean_n, min_max_n$min, min_max_n$max),
+         check_mean_o = check_mean_range(mean_o, min_max_o$min, min_max_o$max)) |> 
+  rename(include_exclude_bfi_mean = include_exclude_bfi)
+
 
 # View the updated dataframe with range checks
 # view(mean_score_bfi)
@@ -366,7 +378,7 @@ data_iat_var <- data_iat_raw |>
   mutate(trial_count = n()) |>                                         # Counting the number of trials per subject in each group
   ungroup() |>                                                         # Ungrouping to apply the next operations to the entire dataset
   mutate(include_exclude_iat = ifelse(trial_count == 120, "include", "exclude"),
-         rt              = as.numeric(rt)) |>                          # Marking subjects as include or exclude
+         rt                  = as.numeric(rt)) |>                          # Marking subjects as include or exclude
   mutate(latency_prob  = if_else(rt < 300, TRUE, FALSE),
          accuracy_prob = if_else(accuracy == "correct", TRUE, FALSE))  # Marking subjects as include or exclude
   
@@ -408,18 +420,18 @@ data_iat_var |>
 ```{r}
 
 # Calculate mean scores first
-mean_score_iat <- data_iat_var %>%
+mean_score_iat <- data_iat_var |> 
   mutate(
     rt_block_3_6 = ifelse(block %in% c(3, 6), rt, NA),  # Combining block 3 + 6 and 4 + 7
     rt_block_4_7 = ifelse(block %in% c(4, 7), rt, NA)
-  ) %>%
-  group_by(subject) %>% 
+  )  |> 
+  group_by(subject) |>
   summarize(
     mean1 = mean(rt_block_3_6, na.rm = TRUE),  # Mean for blocks 3 + 6
     mean2 = mean(rt_block_4_7, na.rm = TRUE),  # Mean for blocks 4 + 7
     SD = sd(rt, na.rm = TRUE),                # Standard deviation of all rt values
     .groups = "drop"
-  ) %>%
+  ) |> 
   mutate(
     D = (mean2 - mean1) / SD,
     D_check = ifelse(D > -2 & D < 2, "within range", "outside range")
@@ -439,6 +451,7 @@ mean_score_iat <- mean_score_iat |>
 # Combining demographics, BFI and IAT
 
 ```{r}
+
 # Checking variable subject class
 # map(data_age_gen, class)
 # map(data_bfi_check, class)
@@ -448,6 +461,7 @@ mean_score_iat <- mean_score_iat |>
 #changing subject class to character because the join wont work
 data_bfi_check <- data_bfi_check|> 
   mutate(subject = as.character(subject))
+
 mean_score_bfi <- mean_score_bfi|> 
   mutate(subject = as.character(subject))
 
@@ -460,8 +474,7 @@ data_processed_temp <- data_age_gen |>
 
 
 
-# flag all subjects with more than one row in the wide-format data. these should be excluded in the analysis.
-# a more elaborate approach would be to track down the individual dupicate cases and determine which of the multiple cases should be retained. 
+# Checking for duplicate subjects
 data_processed_duplicates <- data_processed_temp |>
   count(subject) |>
   mutate(exclude_duplicate_data = if_else(n > 1, "exclude", "include")) |>
@@ -478,19 +491,21 @@ data_processed_before_exclusions <- data_processed_temp |>
 
 ```{r}
 
-# create a master exclude_participant variable
+# master exclude_participant variable
 data_processed <- data_processed_before_exclusions |>
-  mutate(exclude_participant = case_when(tolower(age) == "test" ~ "exclude",
-                                         tolower(gender) == "test" ~ "exclude",
-                                         is.na(mean_evaluation) ~ "exclude",
-                                         # in this case we will exclude participants with missing demographics data or outcomes measures data. 
-                                         # Note that "list-wise exclusions" like this aren't always justified, as missingness often isn't at random. 
-                                         # How to treat missing data is a  whole area of work in itself, which we wont cover here.
-                                         is.na(age) ~ "exclude", 
-                                         is.na(gender) ~ "exclude",
-                                         exclude_amp_performance == "exclude" ~ "exclude",
-                                         exclude_duplicate_data == "exclude" ~ "exclude",
-                                         exclude_amp_completeness == "exclude" ~ "exclude", 
+  mutate(exclude_participant = case_when(tolower(age)             == "other/missing/error" ~ "exclude",
+                                         tolower(gender)          == "other/missing/error" ~ "exclude",
+                                         is.na(mean1)              ~ "exclude",
+                                         is.na(mean2)              ~ "exclude",
+                                         is.na(D)                  ~ "exclude",
+                                         is.na(mean2)              ~ "exclude",
+                                         is.na(age)                ~ "exclude", 
+                                         is.na(gender)             ~ "exclude",
+                                         # Checking if any of the variables below say exclude. if they do the subject is to be excluded
+                                         include_exclude_bfi      == "exclude" ~ "exclude", 
+                                         include_exclude_bfi_mean == "exclude" ~ "exclude",
+                                         include_exclude_iat      == "exclude" ~ "exclude",
+                                         exclude_duplicate_data   == "exclude" ~ "exclude", 
                                          TRUE ~ "include"))
 
 ```
@@ -509,33 +524,18 @@ write_csv(data_processed, "../data/processed/data_processed.csv")
 
 # Create codebook template for the processed data
 
-If it has not already been created, this code write the codebook template to disk. 
-
-\TODO The template should then be filled in manually with descriptions of each variable so that someone else could understand what these variables represent. 
-
 ```{r}
 
-if(!file.exists("../data/communications/data_processed_codebook.xlsx")){
+if(!file.exists("../communications/data_processed_codebook.xlsx")){
   # convert the column names to a df
   codebook_template <- data.frame(variable = colnames(data_processed)) |>
     mutate(explanation = NA)
   # write to disk as an excel file
-  write.xlsx(codebook_template, file = "../data/communications/data_processed_codebook.xlsx")
+  write.xlsx(codebook_template, file = "../communications/data_processed_codebook.xlsx")
 }
 
 ```
 
-Note that there are other ways of automatically creating more elaborate codebooks from your datasets. These often contain information about min/max/mean/SD, distribution, etc. For example:
-
-- Ruben Arslan's {codebook}
-  - [R package with How-Tos](https://rubenarslan.github.io/codebook/)
-  - [Tutorial](https://rubenarslan.github.io/codebook/articles/codebook_tutorial.html)
-  - [Article](https://journals.sagepub.com/doi/full/10.1177/2515245919838783)
-  
-- Petersen & Ekstrøm's {dataReporter}
-  - [Article](https://www.jstatsoft.org/article/view/v090i06)
-  - [Blog](https://sandsynligvis.dk/2017/08/21/datamaid-your-personal-assistant-for-cleaning-up-the-data-cleaning-process/)
-  - [R package](https://cran.r-project.org/web/packages/dataReporter/index.html)
 
 # Session info
 
