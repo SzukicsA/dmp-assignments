@@ -129,24 +129,27 @@ data_bfi_rs <- data_bfi_raw |>
 subscales <- c("a", "c", "e", "n", "o")
 num_items <- c(9, 9, 8, 8, 10)
 
-# Wmpty list to store correlation matrices
+
+# Empty list to store correlation matrices
 cor_matrices <- list()
 
-# Nested loops to compute correlations for each subscale
+# Nested loop to compute correlations for each subscale
 for (i in seq_along(subscales)) {
+    # Generate column names for the current subscale
+    selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])
   
-  selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i]) # Generate column names for the current subscale
+    # Create a subset of data for the current subscale
+    dat_subscale <- data_bfi_rs[, selected_columns, drop = FALSE]
   
-  dat_subscale <- data_bfi_rs |> select(selected_columns) # Select columns for the current subscale
+    # Compute correlation matrix
+    cor_matrix <- cor(dat_subscale, use = "pairwise.complete.obs")
   
-  cor_matrix <- cor(dat_subscale, use = "pairwise.complete.obs") # Compute correlation matrix
-  
-  cor_matrices[[subscales[i]]] <- cor_matrix # Store the correlation matrix in the list
+    # Store the correlation matrix in the list
+    cor_matrices[[subscales[i]]] <- cor_matrix
 }
 
 # Print correlations
 print(cor_matrices)
-
 ```
 
 
@@ -158,16 +161,14 @@ subscales <- c("a", "c", "e", "n", "o")
 num_items <- c(9, 9, 8, 8, 10)
 
 
-# Create an empty list to store completeness information
+# Empty list to store completeness information
 completeness_info <- list()
 
 for (i in seq_along(subscales)) {
     selected_columns <- paste0("bfi_", subscales[i], 1:num_items[i])
     
-  
-    # Select columns for the current subscale
-    dat_subscale <- data_bfi_rs |>
-      select(subject, selected_columns)
+    # Select columns for the current subscale using standard subsetting
+    dat_subscale <- data_bfi_rs[, c("subject", selected_columns), drop = FALSE]
     
     
     # Check if subscale has been started or completed
@@ -233,8 +234,7 @@ for (i in seq_along(subscales)) {
   
   
   # Select columns for the current subscale
-  dat_subscale <- data_bfi_rs |>
-    select(subject, selected_columns)
+  dat_subscale <- data_bfi_rs[, c("subject", selected_columns), drop = FALSE]
   
 
   # Check if subscale has been started
@@ -469,6 +469,7 @@ mean_score_bfi <- mean_score_bfi|>
 data_processed_temp <- data_age_gen |> 
   inner_join(data_bfi_check, by = "subject") |> #using inner_join because data_age_gen has many more entries 
   inner_join(mean_score_bfi, by = "subject") |> 
+  inner_join(data_iat_var, by = "subject")   |> 
   inner_join(mean_score_iat, by = "subject") 
 
 

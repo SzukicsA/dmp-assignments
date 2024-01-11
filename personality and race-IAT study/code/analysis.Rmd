@@ -177,6 +177,160 @@ print(cronbach_alphas)
 
 ## Histogramms
 
+### BFI subscale
+
+```{r}
+# Theme for all plots
+# theme_set()
+
+#BFI A
+ggplot(data_processed_after_exclusions, aes(x = mean_a)) +
+  geom_histogram(position = "dodge",
+                 binwidth = .1,
+                 fill     = "lightblue",
+                 color    = "black")+
+  geom_density(alpha = 0.5, fill = "orange") +
+  geom_vline(aes(xintercept = mean(mean_a, na.rm = TRUE)), 
+             linetype = "dashed", color = "red", size = 1) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  coord_cartesian(xlim = c(1, 6), ylim = c(1, 15)) +
+  labs(title           = "BFI mean score",
+       subtitle        = "Subscale A",
+       x               = "Mean score",
+       y               = "Count") +
+   theme_classic() +
+  # Make the axis label bold
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"))
+
+#BFI C
+ggplot(data_processed_after_exclusions, aes(x = mean_c)) +
+  geom_histogram(position = "dodge",
+                 binwidth = .1,
+                 fill     = "lightblue",
+                 color    = "black")+
+  geom_density(alpha = 0.5, fill = "orange") +
+  geom_vline(aes(xintercept = mean(mean_c, na.rm = TRUE)), 
+             linetype = "dashed", color = "red", size = 1) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  coord_cartesian(xlim = c(1, 6), ylim = c(1, 15)) +
+  labs(title           = "BFI mean score",
+       subtitle        = "Subscale C",
+       x               = "Mean score",
+       y               = "Count") +
+   theme_test() +
+  # Make the axis label bold
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"))
+
+#BFI  E
+ggplot(data_processed_after_exclusions, aes(x = mean_e)) +
+  geom_histogram(position = "dodge",
+                 binwidth = .1,
+                 fill     = "lightblue",
+                 color    = "black")+
+  geom_density(alpha = 0.5, fill = "orange") +
+  geom_vline(aes(xintercept = mean(mean_e, na.rm = TRUE)), 
+             linetype = "dashed", color = "red", size = 1) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  coord_cartesian(xlim = c(1, 6), ylim = c(1, 15)) +
+  labs(title           = "BFI mean score",
+       subtitle        = "Subscale E",
+       x               = "Mean score",
+       y               = "Count") +
+   theme_ggdist() +
+  # Make the axis label bold
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"))
+
+#BFI N
+ggplot(data_processed_after_exclusions, aes(x = mean_n)) +
+  geom_histogram(position = "dodge",
+                 binwidth = .1,
+                 fill     = "lightblue",
+                 color    = "black")+
+  geom_density(alpha = 0.5, fill = "orange") +
+  geom_vline(aes(xintercept = mean(mean_n, na.rm = TRUE)), 
+             linetype = "dashed", color = "red", size = 1) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  coord_cartesian(xlim = c(1, 6), ylim = c(1, 15)) +
+  labs(title           = "BFI mean score",
+       subtitle        = "Subscale N",
+       x               = "Mean score",
+       y               = "Count") +
+   theme_clean() +
+  # Make the axis label bold
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"))
+
+#BFI O
+ggplot(data_processed_after_exclusions, aes(x = mean_o)) +
+  geom_histogram(position = "dodge",
+                 binwidth = .1,
+                 fill     = "lightblue",
+                 color    = "black")+
+  geom_density(alpha = 0.5, fill = "orange") +
+  geom_vline(aes(xintercept = mean(mean_o, na.rm = TRUE)), 
+             linetype = "dashed", color = "red", size = 1) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  coord_cartesian(xlim = c(1, 6), ylim = c(1, 15)) +
+  labs(title           = "BFI mean score",
+       subtitle        = "Subscale O",
+       x               = "Mean score",
+       y               = "Count") +
+  theme_calc() +
+  # Make the axis label bold
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"))
+
+
+```
+
+
+### IAT
+
+```{r}
+
+#IAT D
+ggplot(data_processed_after_exclusions, aes(x = D)) +
+  geom_histogram(position = "dodge",
+                 binwidth = .05,
+                 fill     = "lightblue",
+                 color    = "black")+
+  geom_density(alpha = 0.5, fill = "orange") +
+  geom_vline(aes(xintercept = mean(D, na.rm = TRUE)), 
+             linetype = "dashed", color = "red", size = 1) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  coord_cartesian(xlim = c(-1, .5), ylim = c(1, 15)) +
+  labs(title           = "Implicit Association Test",
+       subtitle        = "Greenwald \"D\" score",
+       x               = "D score",
+       y               = "Count") +
+  theme_classic() +
+  # Labs
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"))
+```
+
+
 ```{r}
 
 ggplot(data_processed_after_exclusions, aes(x = mean_evaluation)) +
@@ -191,7 +345,6 @@ ggplot(data_processed_after_exclusions, aes(x = mean_evaluation)) +
   theme_clean()
 
 ```
-
 
 ## AMP evaluations
 
