@@ -331,21 +331,6 @@ ggplot(data_processed_after_exclusions, aes(x = D)) +
 ```
 
 
-```{r}
-
-ggplot(data_processed_after_exclusions, aes(x = mean_evaluation)) +
-  geom_histogram(binwidth = 0.3,
-                 fill =  "lightblue", 
-                 color = "black") + 
-  xlab("Mean self-reported evaluation") +
-  ylab("Frequency") +
-  theme_linedraw() +
-  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(xlim = c(1, 7)) +
-  theme_clean()
-
-```
-
 ## AMP evaluations
 
 ### Descriptive stats
