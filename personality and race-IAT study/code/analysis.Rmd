@@ -356,7 +356,7 @@ dat_amp_score_by_gender <- data_processed_after_exclusions |>
 # combine both into one table
 bind_rows(dat_amp_score,
           dat_amp_score_by_gender) |>
-  select(Subset = group, Mean, SD, n) |> # select variables of interest, and rename one 
+  select(Subset = group, Mean, SD, n) |> # select variables of interest, and rename one
   mutate(Subset = stringr::str_to_sentence(Subset)) |> # Change the case of the Subset variable so that it prints nicely
   mutate_if(is.numeric, round_half_up, digits = 2) |>
   kable() |>
@@ -372,8 +372,8 @@ bind_rows(dat_amp_score,
 
 ggplot(data_processed_after_exclusions, aes(x = AMP_score)) +
   geom_histogram(binwidth = 0.05,
-                 fill =  "lightblue", 
-                 color = "black") + 
+                 fill =  "lightblue",
+                 color = "black") +
   scale_colour_viridis_d(option = "plasma") +
   scale_x_continuous(breaks = pretty_breaks(n = 10)) +
   xlab("AMP score") +
@@ -400,7 +400,7 @@ ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation))
               color = "blue") +
   xlab("AMP score") +
   ylab("Mean self-reported evaluation") +
-  theme_clean() 
+  theme_clean()
 
 ```
 
@@ -436,7 +436,7 @@ piris2 <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_ev
   theme_light()+
   theme(legend.position = "bottom")
 
-ggMarginal(piris, type = "histogram",groupColour = TRUE, groupFill = TRUE) 
+ggMarginal(piris, type = "histogram",groupColour = TRUE, groupFill = TRUE)
 ggMarginal(piris2, groupColour = TRUE, groupFill = TRUE)
 ```
 
@@ -449,7 +449,7 @@ Label points using ggrepel: https://cran.r-project.org/web/packages/ggrepel/vign
 
 ```{r}
 
-# repel <- 
+# repel <-
 ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, label = subject, colour = gender)) +
   geom_point() +
   theme_minimal() +
@@ -470,7 +470,7 @@ Magnify areas of your plot with ggmagnify: https://hughjonesd.github.io/ggmagnif
 
 library(ggmagnify)
 
-ggp <- ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, label = subject, colour = gender)) + 
+ggp <- ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, label = subject, colour = gender)) +
   geom_point() +
   scale_y_continuous(breaks = pretty_breaks(n = 7)) +
   coord_cartesian(ylim = c(1, 7)) +
@@ -516,20 +516,20 @@ I performed a linear regression analysis to see whether there was a correlation 
 #histogramm
 
 ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
-  geom_histogram(alpha    = 0.5, 
+  geom_histogram(alpha    = 0.5,
                  position = "dodge",
                  binwidth = .2)+
-                 # alpha    = 0.5, 
+                 # alpha    = 0.5,
                  # position = "dodge") +
   scale_x_continuous(breaks = pretty_breaks(n = 7)) +
   coord_cartesian(xlim = c(0, 7)) +
   theme_minimal()
 
 ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
-  geom_histogram(alpha    = 0.5, 
+  geom_histogram(alpha    = 0.5,
                   position = "dodge",
                  )+#binwidth = 5,
-                 # alpha    = 0.5, 
+                 # alpha    = 0.5,
                  # position = "dodge") +
   scale_x_continuous(breaks = pretty_breaks(n = 7)) +
   coord_cartesian(xlim = c(0, 7)) +
@@ -539,7 +539,7 @@ ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender))
 #violin
 
 ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
-  geom_flat_violin(draw_quantiles = .5, 
+  geom_flat_violin(draw_quantiles = .5,
               trim           = TRUE,
               alpha          = 0.5,) +
   scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
@@ -582,7 +582,7 @@ summary(model_gender)
 
 ```
 
-I also performed a linear regression test here to see whether there is a difference between gender in mean evaluation. There although the males have a higher average there seems to be no difference between the two genders (p > .109). 
+I also performed a linear regression test here to see whether there is a difference between gender in mean evaluation. There although the males have a higher average there seems to be no difference between the two genders (p > .109).
 
 
 ## Evaluations on the Affect Misattribution Procedure differ between men and women
@@ -600,10 +600,10 @@ data_processed_after_exclusions$gender <- factor(data_processed_after_exclusions
 #histogramm
 
 ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
-  geom_histogram(alpha    = 0.5, 
+  geom_histogram(alpha    = 0.5,
                  position = "dodge",
                  binwidth = .2)+
-                 # alpha    = 0.5, 
+                 # alpha    = 0.5,
                  # position = "dodge") +
   scale_x_continuous(breaks = pretty_breaks(n = 7)) +
   coord_cartesian(xlim = c(0, 7)) +
@@ -617,10 +617,10 @@ ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender))
   theme_minimal()
 
 ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
-  geom_histogram(alpha    = 0.5, 
+  geom_histogram(alpha    = 0.5,
                   position = "dodge",
                  )+#binwidth = 5,
-                 # alpha    = 0.5, 
+                 # alpha    = 0.5,
                  # position = "dodge") +
   scale_x_continuous(breaks = pretty_breaks(n = 7)) +
   coord_cartesian(xlim = c(0, 7)) +
@@ -637,7 +637,7 @@ ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender))
 #violin
 
 ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
-  geom_flat_violin(draw_quantiles = .5, 
+  geom_flat_violin(draw_quantiles = .5,
               trim           = TRUE,
               alpha          = 0.5,) +
   scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
@@ -736,7 +736,7 @@ p1 <- ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluatio
        y                        = "Mean Evalations")
   theme_minimal()
 p2 <- ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
-  geom_flat_violin(draw_quantiles = .5, 
+  geom_flat_violin(draw_quantiles = .5,
               trim           = TRUE,
               alpha          = 0.5,) +
   scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
@@ -749,12 +749,12 @@ p2 <- ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_eva
        x                        = "Mean Evalations",
        y                        = "Count")
   theme_minimal()
-  
+
 p3 <- ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
-  geom_histogram(alpha    = 0.5, 
+  geom_histogram(alpha    = 0.5,
                   position = "dodge",
                  )+#binwidth = 5,
-                 # alpha    = 0.5, 
+                 # alpha    = 0.5,
                  # position = "dodge") +
   scale_x_continuous(breaks = pretty_breaks(n = 7)) +
   coord_cartesian(xlim = c(0, 7)) +
