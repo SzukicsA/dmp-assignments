@@ -331,117 +331,83 @@ ggplot(data_processed_after_exclusions, aes(x = D)) +
 ```
 
 
-## AMP evaluations
+# Data analysis tests
 
-### Descriptive stats
+## Pearson's r correlation
 
 \TODO add table of means, SDs, Ns
 
 ```{r}
 
-# overall AMP score
-dat_amp_score <- data_processed_after_exclusions |>
-  summarise(Mean = mean(AMP_score, na.rm = TRUE),
-            SD = sd(AMP_score, na.rm = TRUE),
-            n = n()) |>
-  mutate(group = "Full sample")
+# Ensuring the necessary columns are present in the data frame
+required_columns <- c("D", "mean_a", "mean_c", "mean_e", "mean_n", "mean_o")
+if(all(required_columns %in% names(data_processed_after_exclusions))) {
+    # Calculating the correlation matrix
+    correlation_matrix <- cor(data_processed_after_exclusions[required_columns], 
+                              use = "pairwise.complete.obs", method = "pearson")
 
-# self-reported evaluations by gender category
-dat_amp_score_by_gender <- data_processed_after_exclusions |>
-  group_by(group = gender) |>
-  summarise(Mean = mean(AMP_score, na.rm = TRUE),
-            SD = sd(AMP_score, na.rm = TRUE),
-            n = n())
+    # Rounding the correlation matrix to two decimal places
+    correlation_matrix_rounded <- round(correlation_matrix, 2)
 
-# combine both into one table
-bind_rows(dat_amp_score,
-          dat_amp_score_by_gender) |>
-  select(Subset = group, Mean, SD, n) |> # select variables of interest, and rename one
-  mutate(Subset = stringr::str_to_sentence(Subset)) |> # Change the case of the Subset variable so that it prints nicely
-  mutate_if(is.numeric, round_half_up, digits = 2) |>
-  kable() |>
-  add_header_above(header = c(" " = 1, "Self-reported evaluations" = 3)) |>
-  kable_classic(full_width = FALSE)
+    # Formatting and printing the rounded correlation matrix as a table
+    kable(correlation_matrix_rounded) %>%
+    kable_classic(full_width = FALSE)
+} else {
+    cat("One or more required columns are missing from the data frame.")
+}
 
 ```
 
 
-### Descriptive plots
+## T-test
 
 ```{r}
 
-ggplot(data_processed_after_exclusions, aes(x = AMP_score)) +
-  geom_histogram(binwidth = 0.05,
-                 fill =  "lightblue",
-                 color = "black") +
-  scale_colour_viridis_d(option = "plasma") +
-  scale_x_continuous(breaks = pretty_breaks(n = 10)) +
-  xlab("AMP score") +
-  ylab("Frequency") +
-  theme_clean()
+# creating a new variable and encoding male and female
+data_processed_after_exclusions$gender_numeric <- ifelse(data_processed_after_exclusions$gender == "male", 1, 0)
+
+library(report)
+
+model_D <- lm(D ~ gender_numeric, data = data_processed_after_exclusions)
+report(model_D)
 
 ```
 
 
-# Analyses & hypothesis tests
-
-## Self-reported evaluations are correlated with evaluations on the AMP
-
-### Plot
+### Hypothesis tests
 
 ```{r}
 
-ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation)) +
-  geom_jitter(shape = 21,
-              color = "black",
-              alpha = 1,
-              fill = "violet") +
-  geom_smooth(method = "lm",
-              color = "blue") +
-  xlab("AMP score") +
-  ylab("Mean self-reported evaluation") +
-  theme_clean()
+# List of BFI subscales
+subscales <- c("mean_a", "mean_c", "mean_e", "mean_n", "mean_o")
+
+# Initialize a list to store models and their reports
+model_reports <- list()
+
+# Loop through each subscale and run a separate regression
+for (subscale in subscales) {
+  formula_str <- paste("D ~", subscale)
+  model <- lm(as.formula(formula_str), data = data_processed_after_exclusions)
+  
+  # Generate the report for the model
+  model_report <- report(model)
+  
+  # Store the model and its report in the list
+  model_reports[[subscale]] <- list(model = model, report = model_report)
+}
+
+# Print the reports of each model
+for (subscale in names(model_reports)) {
+  cat("\nRegression with", subscale, "as predictor:\n")
+  print(model_reports[[subscale]]$report)
+}
 
 ```
 
 
 More complex plots:
 
-#### Axial hisograms
-
-Scatter plots with axial histograms using ggExtra: https://cran.r-project.org/web/packages/ggExtra/vignettes/ggExtra.html
-
-\TODO add axial histograms to a scatter plot. Split both the scatter plot and the histograms by gender.
-# move legend location!!!!!!!!!!
-
-```{r}
-
-# move legend location!!!!!!!
-
-piris <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, colour = gender)) +
-  geom_point() +
-  scale_y_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(ylim = c(0, 7)) +
-  xlab("AMP score") +
-  ylab("Mean self-reported evaluation") +
-  theme_light()+
-  theme(legend.position = c(0.125,.7))
-
-piris2 <- ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, colour = gender)) +
-  geom_point() +
-  scale_y_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(ylim = c(0, 7)) +
-  xlab("AMP score") +
-  ylab("Mean self-reported evaluation") +
-  theme_light()+
-  theme(legend.position = "bottom")
-
-ggMarginal(piris, type = "histogram",groupColour = TRUE, groupFill = TRUE)
-ggMarginal(piris2, groupColour = TRUE, groupFill = TRUE)
-```
-
-
-#### Labelled points
+#### Scatter plots with regression lines
 
 Label points using ggrepel: https://cran.r-project.org/web/packages/ggrepel/vignettes/ggrepel.html
 
@@ -449,261 +415,183 @@ Label points using ggrepel: https://cran.r-project.org/web/packages/ggrepel/vign
 
 ```{r}
 
-# repel <-
-ggplot(data_processed_after_exclusions, aes(x = AMP_score, y = mean_evaluation, label = subject, colour = gender)) +
-  geom_point() +
-  theme_minimal() +
-  xlab("AMP score") +
-  ylab("Mean self-reported evaluation") +
-  geom_text_repel()
-
-```
-
-
-#### Magnify areas
-
-Magnify areas of your plot with ggmagnify: https://hughjonesd.github.io/ggmagnify/
-
-\TODO Magnify an area of one of your scatter plots, eg., where there are a lot of data points in a small area.
-
-```{r}
-
-library(ggmagnify)
-
-ggp <- ggplot(data_processed_after_exclusions, aes(AMP_score, mean_evaluation, label = subject, colour = gender)) +
-  geom_point() +
-  scale_y_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(ylim = c(1, 7)) +
-  xlab("AMP score") +
-  ylab("Mean self-reported evaluation") +
-  theme_clean()#+
-  # geom_text_repel()
-
-ggp
-
-from <- c(xmin = 0.4, xmax = 0.6, ymin = 1.6, ymax = 3.4)
-# Names xmin, xmax, ymin, ymax are optional:
-to <- c(0.6,  1, 4, 7)
-
-ggp + geom_magnify(from = from, to = to)
-
-```
-
-
-### Test
-
-\TODO run an appropriate test. Below the output, interpret the results: write a few sentences that report and interpret the results following APA reporting style.
-
-```{r}
-
-
-# Fit the linear model
-model_mean_amp <- lm(mean_evaluation ~ AMP_score, data = data_processed_after_exclusions)
-summary(model_mean_amp)
-
-```
-I performed a linear regression analysis to see whether there was a correlation between mean evaluation and AMP score. The results show that there isn't any relation between the two variables (p > 0.05). Furthermore, the model does not seem to explain very little variance for mean evaluation.
-
-
-## Self-reported evalautions differ between men and women
-
-### Plot
-
-\TODO split histogram, split violin plot, raincloud plot, etc.
-
-```{r}
-
-#histogramm
-
-ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
-  geom_histogram(alpha    = 0.5,
-                 position = "dodge",
-                 binwidth = .2)+
-                 # alpha    = 0.5,
-                 # position = "dodge") +
-  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(xlim = c(0, 7)) +
+# Example for BFI subscale 'mean_a'
+ggplot(data_processed_after_exclusions, aes(x = mean_a, y = D)) +
+  geom_point(aes(color = gender), alpha = 0.5) +  # Scatter plot
+  geom_smooth(method = "lm", color = "blue", se = FALSE) +  # Regression line
+  labs(title = "Relationship between the IAT and BFI subscale",
+       x = "BFI Subscale A Score",
+       y = "IAT D Score") +
   theme_minimal()
 
-ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
-  geom_histogram(alpha    = 0.5,
-                  position = "dodge",
-                 )+#binwidth = 5,
-                 # alpha    = 0.5,
-                 # position = "dodge") +
-  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(xlim = c(0, 7)) +
-  facet_grid(~gender)+
+# Calculating the 10th and 90th percentiles of the IAT 'D' scores
+lower_bound <- quantile(data_processed_after_exclusions$D, probs = 0.1)
+upper_bound <- quantile(data_processed_after_exclusions$D, probs = 0.9)
+
+# Creating a new variable to flag extreme scores
+data_processed_after_exclusions <- data_processed_after_exclusions %>%
+  mutate(extreme_score = ifelse(D <= lower_bound | D >= upper_bound, "Extreme", "Normal"))
+
+# Scatter plot for BFI subscale 'mean_a'
+ggplot(data_processed_after_exclusions, aes(x = mean_a, y = D)) +
+  geom_point(aes(shape = extreme_score, color = gender)) +
+  scale_shape_manual(values = c("Normal" = 16, "Extreme" = 17),
+                     labels = c("Extreme Score", "Normal Score")) +  # Rename shape categories
+  scale_color_manual(values = c("male" = "violet", "female" = "#0099F8"),
+                     labels = c("Female", "Male")) +  # Rename color categories and specify colors
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  coord_cartesian(xlim = c(1, 6), ylim = c(-1, .5)) +
+  labs(title    = "Scatter plot for IAT prediction",
+       subtitle = "Subscale A",
+       x        = "Mean score",
+       y        = "D",
+       shape    = "Score Category",
+       color    = "Gender") +
+  theme_clean() +
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"),
+        legend.position = "right")  
+
+# Example for BFI subscale 'mean_c'
+ggplot(data_processed_after_exclusions, aes(x = mean_c, y = D)) +
+  geom_point(aes(color = gender), alpha = 0.5) +  # Scatter plot
+  geom_smooth(method = "lm", color = "blue", se = FALSE) +  # Regression line
+  labs(title = "Relationship between the IAT and BFI subscale",
+       x = "BFI Subscale C Score",
+       y = "IAT D Score") +
   theme_minimal()
 
-#violin
+# Scatter plot for BFI subscale 'mean_c'
+ggplot(data_processed_after_exclusions, aes(x = mean_c, y = D)) +
+  geom_point(aes(shape = extreme_score, color = gender)) +
+  scale_shape_manual(values = c("Normal" = 16, "Extreme" = 17),
+                     labels = c("Extreme Score", "Normal Score")) +  # Rename shape categories
+  scale_color_manual(values = c("male" = "violet", "female" = "#0099F8"),
+                     labels = c("Female", "Male")) +  # Rename color categories and specify colors
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  coord_cartesian(xlim = c(1, 6), ylim = c(-1, .5)) +
+  labs(title    = "Scatter plot for IAT prediction",
+       subtitle = "Subscale C",
+       x        = "Mean score",
+       y        = "D",
+       shape    = "Score Category",
+       color    = "Gender") +
+  theme_clean() +
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"),
+        legend.position = "right")  
 
-ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
-  geom_flat_violin(draw_quantiles = .5,
-              trim           = TRUE,
-              alpha          = 0.5,) +
-  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
-  coord_cartesian(ylim       = c(0, 7)) +
+# Example for BFI subscale 'mean_e'
+ggplot(data_processed_after_exclusions, aes(x = mean_e, y = D)) +
+  geom_point(aes(color = gender), alpha = 0.5) +  # Scatter plot
+  geom_smooth(method = "lm", color = "blue", se = FALSE) +  # Regression line
+  labs(title = "Relationship between the IAT and BFI subscale",
+       x = "BFI Subscale E Score",
+       y = "IAT D Score") +
   theme_minimal()
 
-#raincloud
+# Scatter plot for BFI subscale 'mean_e'
+ggplot(data_processed_after_exclusions, aes(x = mean_e, y = D)) +
+  geom_point(aes(shape = extreme_score, color = gender)) +
+  scale_shape_manual(values = c("Normal" = 16, "Extreme" = 17),
+                     labels = c("Extreme Score", "Normal Score")) +  # Rename shape categories
+  scale_color_manual(values = c("male" = "violet", "female" = "#0099F8"),
+                     labels = c("Female", "Male")) +  # Rename color categories and specify colors
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  coord_cartesian(xlim = c(1, 6), ylim = c(-1, .5)) +
+  labs(title    = "Scatter plot for IAT prediction",
+       subtitle = "Subscale E",
+       x        = "Mean score",
+       y        = "D",
+       shape    = "Score Category",
+       color    = "Gender") +
+  theme_clean() +
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"),
+        legend.position = "right")  
 
-ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fill = gender)) +
-  geom_boxplot(width         = 0.1,
-               outlier.shape = NA,
-               position      = position_nudge(x      = -0.2),
-               alpha         = .7) +
-  geom_point(position        = position_jitter(width = .1),
-             aes(color       = gender),
-             alpha           = .75,
-             color           = "black",
-             shape           = 21) +
-  geom_flat_violin(trim=FALSE,
-                   alpha = 0.4,
-                   position = position_nudge(x = .2)) +
-  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
-  coord_cartesian(ylim       = c(0, 7)) +
+# Example for BFI subscale 'mean_n'
+ggplot(data_processed_after_exclusions, aes(x = mean_n, y = D)) +
+  geom_point(aes(color = gender), alpha = 0.5) +  # Scatter plot
+  geom_smooth(method = "lm", color = "blue", se = FALSE) +  # Regression line
+  labs(title = "Relationship between the IAT and BFI subscale ",
+       x = "BFI Subscale N Score",
+       y = "IAT D Score") +
   theme_minimal()
 
-```
+# Scatter plot for BFI subscale 'mean_n'
+ggplot(data_processed_after_exclusions, aes(x = mean_n, y = D)) +
+  geom_point(aes(shape = extreme_score, color = gender)) +
+  scale_shape_manual(values = c("Normal" = 16, "Extreme" = 17),
+                     labels = c("Extreme Score", "Normal Score")) +  # Rename shape categories
+  scale_color_manual(values = c("male" = "violet", "female" = "#0099F8"),
+                     labels = c("Female", "Male")) +  # Rename color categories and specify colors
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  coord_cartesian(xlim = c(1, 6), ylim = c(-1, .5)) +
+  labs(title    = "Scatter plot for IAT prediction",
+       subtitle = "Subscale N",
+       x        = "Mean score",
+       y        = "D",
+       shape    = "Score Category",
+       color    = "Gender") +
+  theme_clean() +
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"),
+        legend.position = "right")  
 
-
-### Test
-
-\TODO run an appropriate test. Below the output, interpret the results: write a few sentences that report and interpret the results following APA reporting style.
-
-```{r}
-
-data_processed_after_exclusions$gender_numeric <- ifelse(data_processed_after_exclusions$gender == "male", 1, 0)
-
-# Fit the linear model
-model_gender <- lm(mean_evaluation ~ gender_numeric, data = data_processed_after_exclusions)
-summary(model_gender)
-
-```
-
-I also performed a linear regression test here to see whether there is a difference between gender in mean evaluation. There although the males have a higher average there seems to be no difference between the two genders (p > .109).
-
-
-## Evaluations on the Affect Misattribution Procedure differ between men and women
-
-### Plot
-
-\TODO split histogram, split violin plot, raincloud plot, etc.
-
-This time, vary the labeling and order of the legend, e.g., capitalise "Men" and "Women", and know how to change the order of the factors.
-
-```{r}
-
-data_processed_after_exclusions$gender <- factor(data_processed_after_exclusions$gender, levels = c("nonbinary", "male", "female"))
-
-#histogramm
-
-ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
-  geom_histogram(alpha    = 0.5,
-                 position = "dodge",
-                 binwidth = .2)+
-                 # alpha    = 0.5,
-                 # position = "dodge") +
-  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(xlim = c(0, 7)) +
-    scale_fill_discrete(name      = "Gender",
-                      labels    = c("Non-Binary",
-                                    "Man",
-                                    "Woman"))+
-  labs(title                    = "Histogram",
-       x                        = "Mean Evalations",
-       y                        = "Count") +
+# Example for BFI subscale 'mean_o'
+ggplot(data_processed_after_exclusions, aes(x = mean_o, y = D)) +
+  geom_point(aes(color = gender), alpha = 0.5) +  # Scatter plot
+  geom_smooth(method = "lm", color = "blue", se = FALSE) +  # Regression line
+  labs(title = "Relationship between the IAT and BFI subscale",
+       x = "BFI Subscale O Score",
+       y = "IAT D Score") +
   theme_minimal()
 
-ggplot(data_processed_after_exclusions, aes(x = mean_evaluation, fill = gender)) +
-  geom_histogram(alpha    = 0.5,
-                  position = "dodge",
-                 )+#binwidth = 5,
-                 # alpha    = 0.5,
-                 # position = "dodge") +
-  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
-  coord_cartesian(xlim = c(0, 7)) +
-    scale_fill_discrete(name      = "Gender",
-                      labels    = c("Non-Binary",
-                                    "Man",
-                                    "Woman"))+
-  labs(title                    = "Histogram",
-       x                        = "Mean Evalations",
-       y                        = "Count") +
-  facet_grid(~gender)+
-  theme_minimal()
-
-#violin
-
-ggplot(data_processed_after_exclusions, aes(x    = gender, y    = mean_evaluation, fill = gender)) +
-  geom_flat_violin(draw_quantiles = .5,
-              trim           = TRUE,
-              alpha          = 0.5,) +
-  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
-  coord_cartesian(ylim       = c(0, 7)) +
-    scale_fill_discrete(name      = "Gender",
-                      labels    = c("Non-Binary",
-                                    "Man",
-                                    "Woman"))+
-  labs(title                    = "Histogram",
-       x                        = "Mean Evalations",
-       y                        = "Count") +
-  theme_minimal()
-
-#raincloud
-
-rain_height <- .1
-
-ggplot(data_processed_after_exclusions, aes(x = gender, y = mean_evaluation, fill = gender)) +
-  geom_boxplot(width         = 0.1,
-               outlier.shape = NA,
-               position      = position_nudge(x      = -0.2),
-               alpha         = .7) +
-  geom_point(position        = position_jitter(width = .1),
-             aes(color       = gender),
-             alpha           = .75,
-             color           = "black",
-             shape           = 21) +
-  geom_flat_violin(trim=FALSE, alpha = 0.4,
-  position = position_nudge(x = rain_height+.05)) +
-  scale_y_continuous(breaks  = pretty_breaks(n = 7)) +
-  coord_cartesian(ylim       = c(0, 7)) +
-    scale_fill_discrete(name      = "Gender",
-                      labels    = c("Non-Binary",
-                                    "Man",
-                                    "Woman"))+
-  labs(title                    = "Raincloud Plot",
-       x                        = "Gender",
-       y                        = "Mean Evalations") +
-  theme_minimal()
-
-
-```
-
-
-### Test
-
-\TODO run an appropriate test. Below the output, print an interpretation of the results generated by the 'easystats' package [report](https://easystats.github.io/report/). I.e., use `report::report()`.
-
-```{r}
-
-# install.packages("report")
-# install.packages("remotes")
-# remotes::install_github("easystats/report") # You only need to do that once
-library(report)
-
-model_amp <- lm(AMP_score ~ gender_numeric, data = data_processed_after_exclusions)
-report(model_amp)
-
+# Scatter plot for BFI subscale 'mean_o'
+ggplot(data_processed_after_exclusions, aes(x = mean_o, y = D)) +
+  geom_point(aes(shape = extreme_score, color = gender)) +
+  scale_shape_manual(values = c("Normal" = 16, "Extreme" = 17),
+                     labels = c("Extreme Score", "Normal Score")) +  # Rename shape categories
+  scale_color_manual(values = c("male" = "violet", "female" = "#0099F8"),
+                     labels = c("Female", "Male")) +  # Rename color categories and specify colors
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  # scale_x_continuous(breaks = scales::pretty_breaks(n = 15)) +
+  # scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  # coord_cartesian(xlim = c(1, 6), ylim = c(-1, .5)) +
+  labs(title    = "Scatter plot for IAT prediction",
+       subtitle = "Subscale O",
+       x        = "Mean score",
+       y        = "D",
+       shape    = "Score Category",
+       color    = "Gender") +
+  theme_clean() +
+  theme(plot.title    = element_text(color = "#0099F8", size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10, face = "bold"),
+        axis.title.x  = element_text(face = "bold"),
+        axis.title.y  = element_text(face = "bold"),
+        legend.position = "right",
+        legend.box.background = element_blank())
 ```
 
 
 ## Combining plots
-
-Combine plots using the library [patchwork](https://patchwork.data-imaginist.com/).
-
-\TODO Combine at least three of the above plots into one.
 
 ```{r}
 
