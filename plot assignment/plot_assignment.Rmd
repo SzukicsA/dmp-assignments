@@ -23,12 +23,12 @@ knitr::opts_chunk$set(message = FALSE,
 ```{r}
 
 library(tidyverse)
-
+library(janitor)
+library(ggthemes)
+library(reshape2)
 ```
 
 # Instructions
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!get data!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 possible data sources:
   - osf.io
@@ -55,21 +55,134 @@ Consider making use of the many extensions to ggplot2, e.g.:
 - ggsignif
 - and others: https://exts.ggplot2.tidyverse.org/gallery/
 
+# Data
+
+```{r}
+# Load the dataset
+data <- read.csv("births-and-deaths-projected-to-2100.csv") |>
+  clean_names()
+```
+
 # Good plot
 
 ```{r}
 
+# Select specific countries
+selected_countries <- c("Switzerland", "Ireland", "Germany", "France", "Italy", 
+                        "United States", "China", "India", "Brazil", "Australia", 
+                        "Least developed countries", "More developed regions", 
+                        "Less developed regions", "excluding least developed countries")
+
+# Filter the data for the selected countries
+filtered_data <- filter(data, entity %in% selected_countries)
+
+# Splitting the dataset into historical and projected
+historical_data <- filtered_data %>% 
+  filter(year <= 2021) %>%
+  select(entity, year, births_sex_all_age_all_variant_estimates, deaths_sex_all_age_all_variant_estimates)
+
+projected_data <- filtered_data %>% 
+  filter(year >= 2022) %>%
+  select(entity, year, births_sex_all_age_all_variant_medium, deaths_sex_all_age_all_variant_medium)
+
+# Renaming columns for consistency
+names(historical_data)[3:4] <- c("births", "deaths")
+names(projected_data)[3:4] <- c("births", "deaths")
+
+# Combining historical and projected data
+combined_data <- bind_rows(historical_data, projected_data)
+
+# Reshaping the data for plotting
+data_long <- combined_data %>%
+  pivot_longer(cols = c("births", "deaths"),
+               names_to = "type",
+               values_to = "value")
+
+# Assuming data_long is your dataset prepared earlier
+# Aggregate global data
+global_data <- data_long %>%
+  group_by(year, type) %>%
+  summarize(value = sum(value, na.rm = TRUE)) %>%
+  mutate(entity = "Global")
+
+# Append global data to the original dataset
+combined_data <- bind_rows(data_long, global_data)
+
+# Adjust the factor levels to make 'Global' the first level
+combined_data$entity <- fct_relevel(combined_data$entity, "Global")
+
+# Create the faceted plot
+gp <- ggplot(combined_data, aes(x = year, y = value, color = type)) +
+  geom_line() +
+  facet_wrap(~entity, scales = "free_y", nrow = 4) + # Adjust nrow for better layout
+  labs(title = "Historical and Projected Births and Deaths (1950-2100)",
+       x = "Year",
+       y = "Count",
+       color = "Type") +
+  theme_clean() +
+  theme(legend.position = "bottom")
+
+# Print the plot
+gp
 
 
 ```
+
+This facet wrap plot is good because you can see both the death and births that occurred from 1950 until 2021 and the projected deaths and birth from 2022 until 2100 for the selected countries (some have been grouped) and the global figures. The plot also makes it easy to compare between countries and regions or against the global growth/decline. What is clear is that at one point all births will be less than the deaths and that form that point on the population will shrink. This can be done for countries or just some of interest by changing or adding names to selection
+
+
+```{r}
+library(plotly)
+
+# interactive plot
+g <- ggplot(combined_data, aes(x = year, y = value, color = entity, linetype = type)) +
+  geom_line() +
+  labs(title = "Historical and Projected Births and Deaths (1950-2100)",
+       x = "Year",
+       y = "Count",
+       color = "Country",
+       linetype = "Type") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# Convert to an interactive plotly object
+interactive_plot <- ggplotly(g)
+
+# Display the interactive plot
+interactive_plot
+```
+
+I also made an interactive plot. This plot is great because you can zoom on either the y or x axis and the problem of the lines overlapping each other is pretty much solved. Additionally you can hover with the mouse over the lines and you will receive information about the country you are and at what point in time and the count of that spot. The use of this plot is very intuitive in my opinion. It just too bad that you can't save it.
 
 # Bad plot
 
 ```{r}
+# worse
+bp <- ggplot(combined_data, aes(x = year, y = value, color = type)) +
+  geom_line() +
+  facet_wrap(~entity, scales = "free_y", nrow = 10) +
+  scale_color_manual(values = rep("black", 2)) + # Single colour for all lines
+  scale_x_continuous(breaks = seq(1950, 2100, 25), labels = rep("", length(seq(1950, 2100, 25)))) + 
+  scale_y_continuous(labels = function(x) paste0("$", x/1000, "K")) + 
+  labs(x = "Random Time Units", y = "Arbitrary Values", color = "Random Categories") +
+  guides(color = guide_legend(reverse = TRUE)) + # Reversed legend
+  theme_minimal() +
+   theme(text = element_text(size = 1, color = "magenta"),
+        plot.title = element_text(face = "bold", color = "orange"),
+        panel.grid.major = element_line(size = .5, linetype = 'dotted', color = "red"),
+        panel.grid.minor = element_line(size = .5, linetype = 'dotted', color = "red"),
+        axis.text.x = element_text(angle = 190, vjust = 0.5, hjust=1),
+        legend.position = c(0.5, 0.5),
+        legend.background = element_rect(fill = "black"),
+        strip.text.x = element_text(color = "blue", face = "italic")) # Misleading facet labels
 
+# print
+bp
 
 
 ```
+
+This plot is bad for multiple reasons. First there is no title so its hard to know what it is about. the lines in the plot are the same colour so one doesn't know which line is births and which is deaths. the lines for the y-axis aren't straight and a distracting red colour and the legend is in the middle of the plot covering part of some plots. It is also black making only the purple text on it visible. The labs for x and y are confusing as are the number for the y axis. the x axis is non existent and thus there is loss of information and one can't distinguish between historical and predictive figures. Furthermore, one can't read the title of the plots making it impossible to identify which plot belongs to which country
 
 # Write to disk
 
@@ -79,7 +192,11 @@ Name them "plot_good_[yourname]" and "plot_bad_[yourname]".
 
 ```{r}
 
+# Saving good plot
+ggsave("plot_good_SzukicsAndreas.png", gp, width = 20, height = 16)
 
+# Saving bad plot
+ggsave("plot_bad_SzukicsAndreas.png", bp, width = 20, height = 16)
 
 ```
 

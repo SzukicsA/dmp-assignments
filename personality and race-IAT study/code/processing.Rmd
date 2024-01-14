@@ -54,34 +54,37 @@ data_iat_raw <- read_csv("../data/raw/data_raw_iat.csv") |>
   clean_names()
 
 
-# view(data_dem_raw)
-# view(data_bfi_raw)
-# view(data_iat_raw)
+# print(data_dem_raw)
+# print(data_bfi_raw)
+# print(data_iat_raw)
 
 ```
 
 
 # Demographics
 
-```{r}
+```{r, results='asis'}
 # Checking variables' class
-map(data_dem_raw, class)
+# map(data_dem_raw, class)
 
 
+# Pivoting the data frame and separating gender and age
 data_age_gen <- data_dem_raw |>
   pivot_wider(names_from  = variable,
               values_from = response) |> 
   rename(subject = unique_id,
           gender = sex) |>
-  mutate(gender = as.character(gender), # case_when does not work otherwise (classed as a list after bivor because of NAs)
+  mutate(gender = as.character(gender), # case_when does not work otherwise (classed as a list after bevor because of NAs)
          age    = as.character(age))
 
 
+# Value check
 table(data_age_gen$gender, useNA = "ifany") |>  #checking the values in gender to use below
   kable()  |>
   kable_classic(full_width = FALSE)
 
 
+# Mutating values (NAs or Null)
 data_age_gen <- data_age_gen         |>
   mutate(gender  = as.character(gender), # case_when does not work otherwise (classed as a list after bivor because of NAs)
          age     = as.character(age),    # case_when does not work otherwise (classed as a list after bivor because of NAs)
@@ -96,9 +99,9 @@ data_age_gen <- data_age_gen         |>
                              TRUE ~ as.character(subject))) # there is one missing subject nr
          
 
+# checking the class for age and gender
+# map(data_age_gen, class)
 
-
-map(data_age_gen, class) # checking the class for age and gender
 ```
 
 
@@ -110,14 +113,16 @@ map(data_age_gen, class) # checking the class for age and gender
 
 ```{r}
 
+# Reverse scaling subscale items
 data_bfi_rs <- data_bfi_raw |> 
   rename(subject = unique_id) |> 
+  #selecting the items to be reverse scaled
   mutate_at(vars(bfi_a1, bfi_a3, bfi_a6, bfi_a8,
                  bfi_c2, bfi_c4, bfi_c5, bfi_c9,
                  bfi_e2, bfi_e5, bfi_e7,
                  bfi_n2, bfi_n5, bfi_n7,
                  bfi_o7, bfi_o9), 
-            ~ ifelse(!is.na(.), 7 - ., NA)) # this is to ignore missing values
+            ~ ifelse(!is.na(.), 7 - ., NA)) # subtracting 7 with the item. NAs are ignored
               
 ```
 
@@ -125,6 +130,7 @@ data_bfi_rs <- data_bfi_raw |>
 #### Sanity check for reversal (correlations)
 
 ```{r}
+
 # List of subscales
 subscales <- c("a", "c", "e", "n", "o")
 num_items <- c(9, 9, 8, 8, 10)
@@ -148,8 +154,23 @@ for (i in seq_along(subscales)) {
     cor_matrices[[subscales[i]]] <- cor_matrix
 }
 
-# Print correlations
-print(cor_matrices)
+# Print Corr. Matrix
+# print(cor_matrices)
+
+```
+
+
+```{r, results='asis'}
+
+# Table for the correlations
+for (i in seq_along(cor_matrices)) {
+    cat("\nCorrelation Matrix for Subscale:", names(cor_matrices)[i], "\n")
+    print(
+        knitr::kable(cor_matrices[[i]]) %>%
+        kable_classic(full_width = FALSE)
+    )
+}
+
 ```
 
 
@@ -218,7 +239,7 @@ data_bfi_check <- merge(data_bfi_rs, completeness_combined[, c("subject", "inclu
 
 ### Sanity check for inclusion/exclusion
 
-```{r, echo=FALSE}
+```{r}
 
 # List of subscales
 subscales <- c("a", "c", "e", "n", "o")
@@ -268,7 +289,7 @@ final_list <- list(subjects_outside_range = subjects_outside_range,
                    subjects_with_NAs = subjects_with_NAs)
 
 
-# View the final list
+# print the final list
 print(final_list)
 
 ```
@@ -306,8 +327,8 @@ mean_score_bfi <- mean_score_bfi |>
   left_join(data_bfi_check |> select(subject, include_exclude_bfi), by = "subject")
 
 
-# View the mean scores per subject
-# view(mean_score_bfi)
+# print the mean scores per subject
+# print(mean_score_bfi)
 
 ```
 
@@ -352,8 +373,8 @@ mean_score_bfi <- mean_score_bfi |>
   rename(include_exclude_bfi_mean = include_exclude_bfi)
 
 
-# View the updated dataframe with range checks
-# view(mean_score_bfi)
+# print the updated dataframe with range checks
+ # print(mean_score_bfi)
 
 ```
 
@@ -378,7 +399,7 @@ data_iat_var <- data_iat_raw |>
   mutate(trial_count = n()) |>                                         # Counting the number of trials per subject in each group
   ungroup() |>                                                         # Ungrouping to apply the next operations to the entire dataset
   mutate(include_exclude_iat = ifelse(trial_count == 120, "include", "exclude"),
-         rt                  = as.numeric(rt)) |>                          # Marking subjects as include or exclude
+         rt                  = as.numeric(rt)) |>                      # Marking subjects as include or exclude
   mutate(latency_prob  = if_else(rt < 300, TRUE, FALSE),
          accuracy_prob = if_else(accuracy == "correct", TRUE, FALSE))  # Marking subjects as include or exclude
   
@@ -388,7 +409,7 @@ proportion_rt_acc <- data_iat_var |>
   group_by(subject) |>
   summarize(proportion_fast_trials = mean(latency_prob, na.rm = TRUE),
             proportion_accuracy    = mean(accuracy_prob, na.rm = TRUE)) |>
-  mutate(exclude_performance = ifelse(proportion_fast_trials > 0.10| proportion_accuracy < 0.75, "exclude", "include"))
+  mutate(exclude_performance = ifelse(proportion_fast_trials > 0.10| proportion_accuracy < 0.75, "exclude", "include")) #excluding too fast and or inaccurate trials
 
 # Joining the proportion back to the original data and updating include_exclude
 data_iat_var <- data_iat_var |>
@@ -396,8 +417,8 @@ data_iat_var <- data_iat_var |>
   mutate(include_exclude_iat = ifelse(exclude_performance == "exclude", "exclude", include_exclude_iat)) |>
   select(-exclude_performance)
 
-# View the resulting dataframe
-# view(data_iat_var)
+# print the resulting dataframe
+# print(data_iat_var)
 
 ```
 
@@ -427,22 +448,24 @@ mean_score_iat <- data_iat_var |>
   )  |> 
   group_by(subject) |>
   summarize(
-    mean1 = mean(rt_block_3_6, na.rm = TRUE),  # Mean for blocks 3 + 6
-    mean2 = mean(rt_block_4_7, na.rm = TRUE),  # Mean for blocks 4 + 7
-    SD = sd(rt, na.rm = TRUE),                # Standard deviation of all rt values
+    mean1 = mean(rt_block_3_6, na.rm = TRUE),           # Mean for blocks 3 + 6
+    mean2 = mean(rt_block_4_7, na.rm = TRUE),           # Mean for blocks 4 + 7
+    SD    = sd(rt, na.rm = TRUE),                       # Standard deviation of all rt values
     .groups = "drop"
   ) |> 
   mutate(
-    D = (mean2 - mean1) / SD,
+    D       = (mean2 - mean1) / SD,
     D_check = ifelse(D > -2 & D < 2, "within range", "outside range")
   )
+
 
 # adding the include_exclude_iat column
 mean_score_iat <- mean_score_iat |> 
   left_join(data_iat_var %>% select(subject, include_exclude_iat) %>% distinct(), by = "subject")
 
-# View the updated dataframe
-# view(mean_score_iat)
+
+# print the updated dataframe
+# print(mean_score_iat)
 
 
 ```
@@ -458,6 +481,7 @@ mean_score_iat <- mean_score_iat |>
 # map(mean_score_bfi, class)
 # map(mean_score_iat, class)
 
+
 #changing subject class to character because the join wont work
 data_bfi_check <- data_bfi_check|> 
   mutate(subject = as.character(subject))
@@ -465,14 +489,12 @@ data_bfi_check <- data_bfi_check|>
 mean_score_bfi <- mean_score_bfi|> 
   mutate(subject = as.character(subject))
 
+
 # combine all dfs created in the previous chunks
 data_processed_temp <- data_age_gen |> 
   inner_join(data_bfi_check, by = "subject") |> #using inner_join because data_age_gen has many more entries 
   inner_join(mean_score_bfi, by = "subject") |> 
-  inner_join(data_iat_var, by = "subject")   |> 
   inner_join(mean_score_iat, by = "subject") 
-
-
 
 
 # Checking for duplicate subjects
