@@ -182,7 +182,7 @@ bp
 
 ```
 
-This plot is bad for multiple reasons. First there is no title so its hard to know what it is about. the lines in the plot are the same colour so one doesn't know which line is births and which is deaths. the lines for the y-axis aren't straight and a distracting red colour and the legend is in the middle of the plot covering part of some plots. It is also black making only the purple text on it visible. The labs for x and y are confusing as are the number for the y axis. the x axis is non existent and thus there is loss of information and one can't distinguish between historical and predictive figures. Furthermore, one can't read the title of the plots making it impossible to identify which plot belongs to which country
+This plot is bad for multiple reasons. First there is no title so its hard to know what it is about. the lines in the plot are the same colour so one doesn't know which line is births and which is deaths. the lines for the y-axis aren't straight and a distracting red colour and the legend is in the middle of the plot covering part of some plots. It is also black making only the purple text on it visible. The labs for x and y are confusing as are the number for the y axis. the x axis is non existent and thus there is loss of information and one can't distinguish between historical and predictive figures. Furthermore, one can't read the title of the plots making it impossible to identify which plot belongs to which country. also the theme minimal makes the png hard to see if you laptop is on night mode.
 
 # Write to disk
 
